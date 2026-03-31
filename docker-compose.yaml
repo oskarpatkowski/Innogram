@@ -1,0 +1,18 @@
+services:
+  core:
+    build:
+      context: .
+      dockerfile: apps/core_microservice/Dockerfile
+    ports:
+      - "${CORE_PORT}:3000"
+    environment:
+      - NODE_ENV=production
+
+  client:
+    build:
+      context: .
+      dockerfile: apps/client_app/Dockerfile
+    ports:
+      - "${CLIENT_PORT}:3001"
+    environment:
+      - NODE_ENV=production

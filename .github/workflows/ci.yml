@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, dev]
   pull_request:
-    branches: [ main ]
+    branches: [ main, dev]
 
 jobs:
   build:
@@ -22,5 +22,7 @@ jobs:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
     - run: npm install
+    - run: npx turbo build
+    - run: npx turbo test
     - run: npx turbo lint
     - run: npx turbo check-types

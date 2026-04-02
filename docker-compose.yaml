@@ -1,18 +1,47 @@
+# docker-compose.yml
+
 services:
   core:
+    env_file: ".env"
     build:
       context: .
       dockerfile: apps/core_microservice/Dockerfile
     ports:
       - "${CORE_PORT}:3000"
     environment:
-      - NODE_ENV=production
+      NODE_ENV: production
+      DATABASE_URL: ${DATABASE_URL} 
+    depends_on:
+      db:
+        condition: service_healthy
 
   client:
+    env_file: ".env"
     build:
       context: .
       dockerfile: apps/client_app/Dockerfile
     ports:
       - "${CLIENT_PORT}:3001"
     environment:
-      - NODE_ENV=production
+      NODE_ENV: production
+  
+  db:
+    env_file: ".env"
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWD}
+      POSTGRES_USER: ${POSTGRES_NAME}
+      POSTGRES_DB: ${POSTGRES_NAME}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "${DB_PORT}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_NAME} -d ${POSTGRES_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:

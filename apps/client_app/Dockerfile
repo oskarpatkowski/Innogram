@@ -4,7 +4,7 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 COPY apps/client_app/package.json ./apps/client_app/
 
-RUN npm install
+RUN npm ci
 
 COPY . .
 
@@ -19,7 +19,7 @@ WORKDIR /app
 
 COPY package.json package-lock.json* ./
 COPY apps/client_app/package.json ./apps/client_app/
-RUN npm install
+RUN npm ci
 
 
 COPY --from=builder /app/apps/client_app/.next ./apps/client_app/.next

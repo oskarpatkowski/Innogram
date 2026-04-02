@@ -2,3 +2,4 @@ node_modules
 n.next
 ndist
 n.turbo
+.env

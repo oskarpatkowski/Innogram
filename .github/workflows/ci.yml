@@ -10,10 +10,27 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    env:
+      DATABASE_URL: "postgresql://user:password@localhost:5433/innogram_test?schema=public"
+
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: innogram_test
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     strategy:
       matrix:
-        node-version: [ 24.x ]
-
+        node-version: [ 24.x ] 
     steps:
     - uses: actions/checkout@v4
     - name: Use Node.js ${{ matrix.node-version }}
@@ -21,8 +38,16 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
+
     - run: npm ci
+
+    - name: Run Migrations
+      run: npx turbo run db:migrate
+      
     - run: npx turbo build
-    - run: npx turbo test
+    
+    - name: Run Tests
+      run: npx turbo test
+    
     - run: npx turbo lint
     - run: npx turbo check-types

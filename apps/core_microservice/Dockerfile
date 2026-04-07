@@ -2,21 +2,34 @@ FROM node:24-slim AS builder
 
 WORKDIR /app
 
+RUN apt-get update -y && apt-get install -y openssl
+
 COPY package.json package-lock.json ./
+COPY apps/core_microservice/package.json ./apps/core_microservice/
+COPY apps/client_app/package.json ./apps/client_app/
 
 RUN npm ci
 
 COPY . .
 
+RUN npm run db:generate --workspace=innogram-nest
 RUN npm run build --workspace=innogram-nest
 
 FROM node:24-slim
 
 WORKDIR /app
 
+RUN apt-get update -y && apt-get install -y openssl
+
 COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/apps/core_microservice/dist ./dist
+
+COPY --from=builder /app/apps/core_microservice/dist ./apps/core_microservice/dist
+COPY --from=builder /app/apps/core_microservice/package.json ./apps/core_microservice/
+COPY --from=builder /app/apps/core_microservice/prisma ./apps/core_microservice/prisma
+COPY --from=builder /app/apps/core_microservice/prisma.config.ts ./apps/core_microservice/
+
+WORKDIR /app/apps/core_microservice
 
 EXPOSE 3000
 
-CMD ["node", "dist/main"]
+CMD ["sh", "-c", "npm run db:migrate && node dist/src/main"]

@@ -10,7 +10,7 @@ services:
       - "${CORE_PORT}:3000"
     environment:
       NODE_ENV: production
-      DATABASE_URL: ${DATABASE_URL} 
+      DATABASE_URL: postgresql://${POSTGRES_NAME}:${POSTGRES_PASSWD}@db:5432/${POSTGRES_NAME}?schema=public
     depends_on:
       db:
         condition: service_healthy
@@ -34,7 +34,7 @@ services:
       POSTGRES_USER: ${POSTGRES_NAME}
       POSTGRES_DB: ${POSTGRES_NAME}
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/
     ports:
       - "${DB_PORT}:5432"
     healthcheck:

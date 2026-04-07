@@ -8,6 +8,6 @@ async function bootstrap() {
   const port = process.env.PORT || 3000;
   await app.listen(port);
 
-  Logger.log(`Core microservice is running on port: ${port}`);
+  Logger.log(`Core microservice is running on port: ${port}`, 'Bootstrap');
 }
 bootstrap();

@@ -6,3 +6,284 @@ datasource db {
   provider = "postgresql"
   schemas = ["auth", "main", "notification"]
 }
+
+enum Role {
+  USER
+  ADMIN
+
+  @@schema("auth")
+}
+
+enum Provider{
+  LOCAL
+  GOOGLE
+  FACEBOOK
+  GITHUB
+  TWITTER
+
+  @@schema("auth")
+}
+
+enum NotificationType {
+  LIKE
+  COMMENT
+  FOLLOW
+  SUBSCRIPTION
+  SYSTEM
+
+  @@schema("notification")
+}
+
+enum Type {
+  PRIVATE
+  GROUP
+  @@schema("main")
+}
+
+model User {
+  id String @id @default(uuid()) @db.VarChar(36)
+  role Role @default(USER)
+  disabled Boolean @default(false)
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  createdBy User? @relation("UserCreator", fields: [createdById], references: [id])
+  createdById String? @map("created_by") 
+
+  updatedAt DateTime @map("updated_at") @updatedAt
+  updatedBy   User?   @relation("UserUpdater", fields: [updatedById], references: [id])
+  updatedById String? @map("updated_by")
+  
+  createdUsers User[] @relation("UserCreator")
+  updatedUsers User[] @relation("UserUpdater")
+
+  createdAccounts Account[] @relation("AccountCreator")
+  updatedAccounts Account[] @relation("AccountUpdater")
+
+  createdProfiles Profile[] @relation("ProfileCreator")
+  updatedProfiles Profile[] @relation("ProfileUpdater")
+
+  createdPosts Post[] @relation("PostCreator")
+  updatedPosts Post[] @relation("PostUpdater")
+
+  createdComments Comment[] @relation("commentCreator")
+  updatedComments Comment[] @relation("commentUpdater")
+
+  createdAssets Assets[] @relation("AssetCreator")
+  updatedAssets Assets[] @relation("AssetUpdater")
+
+  createdChats Chat[] @relation("ChatCreator")
+  updatedChats Chat[] @relation("ChatUpdater")
+
+  createdMessages Message[] @relation("MessageCreator")
+  updatedMessages Message[] @relation("MessageUpdater")
+
+  createdNotifications Notification[] @relation("NotificationCreator")
+  updatedNotifications Notification[] @relation("NotificationUpdater")
+
+  account Account?
+  profile Profile?
+
+  @@map("users")
+  @@schema("auth")
+}
+
+
+model Account {
+  id String @id @default(uuid()) @db.VarChar(36)
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @unique @map("user_id")
+
+  email String @db.VarChar(255) @unique
+  passwordHash String @db.VarChar(255) @map("password_hash")
+
+  provider Provider @default(LOCAL)
+  providerId String @db.VarChar(255) @map("provider_id")
+
+  lastLoginAt DateTime @map("last_login_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  createdBy User @relation("AccountCreator", fields: [createdById], references: [id])
+  createdById String @map("created_by")
+  
+  updatedAt DateTime @map("updated_at") @updatedAt
+  updatedBy User @relation("AccountUpdater", fields: [updatedById], references: [id])
+  updatedById String @map("updated_by")
+
+  @@map("accounts")
+  @@schema("auth")
+}
+
+model Profile {
+  id String @id @default(uuid()) @db.VarChar(36)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @unique @map("user_id")
+  username String @db.VarChar(50) @unique
+  displayName String @db.VarChar(100) @map("display_name")
+  birthday DateTime
+  bio String
+  avatarUrl String? @db.VarChar(500) @map("avatar_url")
+  isPublic Boolean @default(true) @map("is_public")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  createdBy User @relation("ProfileCreator", fields: [createdById], references: [id])
+  createdById String @map("created_by")
+
+  updatedAt DateTime @map("updated_at") @updatedAt
+  updatedBy User? @relation("ProfileUpdater", fields: [updatedById], references: [id])
+  updatedById String? @map("updated_by")
+
+  deleted Boolean @default(false) 
+
+  createdPosts Post[]
+  comments Comment[]
+  messages Message[]
+
+  @@map("profiles")
+  @@schema("main")
+}
+
+model Post {
+  id String @id @default(uuid()) @db.VarChar(36)
+  
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  profileId String @map("profile_id")
+
+  content String
+  isArchived Boolean @default(false) @map("is_archived")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  createdBy User @relation("PostCreator", fields: [createdById], references: [id])
+  createdById String @map("created_by")
+
+  updatedAt DateTime @map("updated_at") @updatedAt
+  updatedBy User @relation("PostUpdater", fields: [updatedById], references: [id])
+  updatedById String @map("updated_by")
+
+  comments Comment[]
+
+  @@map("posts")
+  @@schema("main")
+}
+
+model Comment {
+  id String @id @default(uuid()) @db.VarChar(36)
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId String @map("post_id")
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  profileId String @map("profile_id")
+
+  parentComment Comment? @relation("ParentComment", fields: [parentCommentId], references: [id], onDelete: Cascade)
+  parentCommentId String? @map("parent_comment_id")
+  childComments Comment[] @relation("ParentComment")
+
+  content String
+
+  createdAt DateTime @default(now()) @map("created_at")
+  createdBy User @relation("commentCreator", fields: [createdById], references: [id])
+  createdById String @map("created_by")
+
+  updatedAt DateTime @map("updated_at") @updatedAt
+  updatedBy User @relation("commentUpdater", fields: [updatedById], references: [id])
+  updatedById String @map("updated_by")
+
+  deleted Boolean @default(false)
+
+  @@map("comments")
+  @@schema("main")
+}
+
+model Assets {
+  id String @id @default(uuid()) @db.VarChar(36)
+  fileName String @db.VarChar(255) @map("file_name")
+  filePath String @db.VarChar(500) @map("file_path")
+  fileType String @db.VarChar(100) @map("file_type")
+  fileSize Int @map("file_size")
+  orderIndex Int @map("order_index") @default(0)
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  createdBy User @relation("AssetCreator", fields: [createdById], references: [id])
+  createdById String @map("created_by")
+
+  updatedAt DateTime @map("updated_at") @updatedAt
+  updatedBy User @relation("AssetUpdater", fields: [updatedById], references: [id])
+  updatedById String @map("updated_by")
+
+  @@map("assets")
+  @@schema("main")
+}
+
+model Chat {
+  id String @id @default(uuid()) @db.VarChar(36)
+  name String @db.VarChar(100)
+  description String
+  type Type @default(PRIVATE)
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  createdBy User @relation("ChatCreator", fields: [createdById], references: [id])
+  createdById String @map("created_by")
+
+  updatedAt DateTime @map("updated_at") @updatedAt
+  updatedBy User @relation("ChatUpdater", fields: [updatedById], references: [id])
+  updatedById String @map("updated_by")
+
+  messages Message[]
+
+  @@map("chats")
+  @@schema("main")
+}
+
+model Message {
+  id String @id @default(uuid()) @db.VarChar(36)
+
+  chat Chat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  chatId String @map("chat_id")
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  profileId String @map("profile_id")
+
+  content String
+
+  replyToMessage Message? @relation("Replies" ,fields: [replyToMessageId], references: [id], onDelete: SetNull)
+  replyToMessageId String? @map("reply_to_message_id")
+  replies Message[] @relation("Replies")
+
+  isEdited Boolean @default(false) @map("is_edited")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  createdBy User @relation("MessageCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  createdById String @map("created_by")
+
+  updatedAt DateTime @map("updated_at") @updatedAt
+  updatedBy User @relation("MessageUpdater", fields: [updatedById], references: [id], onDelete: Cascade)
+  updatedById String @map("updated_by")
+
+  deleted Boolean @default(false)
+
+  @@map("messages")
+  @@schema("main")
+}
+
+model Notification {
+  id String @id @default(uuid()) @db.VarChar(36)
+  type NotificationType
+  title String @db.VarChar(255)
+  message String
+  data Json
+  isRead Boolean @default(false) @map("is_read")
+  readAt DateTime @map("read_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  createdBy User @relation("NotificationCreator", fields: [createdById], references: [id])
+  createdById String @map("created_by")
+
+  updatedAt DateTime @map("updated_at") @updatedAt
+  updatedBy User @relation("NotificationUpdater", fields: [updatedById], references: [id])
+  updatedById String @map("updated_by")
+
+  @@map("notifications")
+  @@schema("notification")
+}

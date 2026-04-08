@@ -521,5 +521,3 @@ model ProfileToProfileConfiguration {
   @@map("profile_to_profile_configurations")
   @@schema("main") 
 }
-
-

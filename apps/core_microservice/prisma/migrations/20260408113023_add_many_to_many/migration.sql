@@ -450,4 +450,4 @@ ALTER TABLE "main"."profile_to_profile_configurations" ADD CONSTRAINT "profile_t
 ALTER TABLE "main"."profile_to_profile_configurations" ADD CONSTRAINT "profile_to_profile_configurations_updated_by_fkey" FOREIGN KEY ("updated_by") REFERENCES "auth"."users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddCheckConstraint
-ALTER TABLE "main"."profiles_follows" ADD CONSTRAINT "prevent_self_follow" CHECK (follower_profile_id != followed_profile_id);
+ALTER TABLE "main"."profiles_follows" ADD CONSTRAINT "prevent_self_follow" CHECK (follower_profile_id != following_profile_id);

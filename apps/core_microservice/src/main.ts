@@ -37,4 +37,4 @@ async function bootstrap() {
 
   Logger.log(`Core microservice is running on port: ${port}`, 'Bootstrap');
 }
-bootstrap();
+bootstrap().catch(console.error);

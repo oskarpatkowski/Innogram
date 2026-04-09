@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AssetsService } from '../services/assetes.service';
 import { AssetsController } from '../controllers/assets.controller';
-import { Prisma } from '../../generated/prism/browser';
 import { PrismaService } from '../services/prisma.service';
 import { ConfigService } from '@nestjs/config';
 

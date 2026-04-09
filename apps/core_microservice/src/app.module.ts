@@ -8,6 +8,7 @@ import { CommentsModule } from './modules/comments.module';
 import { NotificationsModule } from './modules/notifications.module';
 import { PostsModule } from './modules/posts.module';
 import { UsersModule } from './modules/users.module';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { UsersModule } from './modules/users.module';
     NotificationsModule,
     PostsModule,
     UsersModule,
+    ConfigModule.forRoot(),
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

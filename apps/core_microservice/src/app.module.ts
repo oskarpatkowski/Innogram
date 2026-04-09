@@ -9,6 +9,7 @@ import { NotificationsModule } from './modules/notifications.module';
 import { PostsModule } from './modules/posts.module';
 import { UsersModule } from './modules/users.module';
 import { ConfigModule } from '@nestjs/config';
+import { AssetsModule } from './modules/assets.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { ConfigModule } from '@nestjs/config';
     NotificationsModule,
     PostsModule,
     UsersModule,
+    AssetsModule,
     ConfigModule.forRoot(),
   ],
   controllers: [AppController],

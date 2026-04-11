@@ -10,6 +10,7 @@ import { PostsModule } from './modules/posts.module';
 import { UsersModule } from './modules/users.module';
 import { ConfigModule } from '@nestjs/config';
 import { AssetsModule } from './modules/assets.module';
+import { ThrottlerModule } from '@nestjs/throttler';
 
 @Module({
   imports: [
@@ -21,6 +22,14 @@ import { AssetsModule } from './modules/assets.module';
     UsersModule,
     AssetsModule,
     ConfigModule.forRoot(),
+    ThrottlerModule.forRoot({
+      throttlers: [
+        {
+          ttl: 60000,
+          limit: 10,
+        },
+      ],
+    }),
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

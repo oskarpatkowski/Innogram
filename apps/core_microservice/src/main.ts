@@ -3,6 +3,7 @@ import { ConsoleLogger, Logger, ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { HttpExceptionFilter } from './filters/exception.filter';
+import helmet from 'helmet';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -11,6 +12,8 @@ async function bootstrap() {
       timestamp: true,
     }),
   });
+
+  app.use(helmet());
 
   const config = new DocumentBuilder()
     .setTitle('Innogram core microservice')

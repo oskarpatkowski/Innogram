@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
 import { UpdateProfileConfigDto } from '../../dto/update.profileconfig.dto';
 import { CreateProileConfigDto } from '../../dto/create.profileconfig.dto';
@@ -8,37 +8,88 @@ export class ProfileConfigService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(dto: CreateProileConfigDto) {
-    return await this.prisma.profileConfiguration.create({
+    const config = await this.prisma.profileConfiguration.create({
       data: dto,
     });
+    Logger.log(
+      `ProfileConfiguration ${config.id} created`,
+      'ProfileConfigService',
+    );
+    return config;
   }
 
   async getById(id: string) {
-    return await this.prisma.profileConfiguration.findUnique({
+    const config = await this.prisma.profileConfiguration.findUnique({
       where: {
         id,
       },
     });
+
+    if (config) {
+      Logger.log(
+        `ProfileConfiguration ${config.id} found`,
+        'ProfileConfigService',
+      );
+    } else {
+      Logger.log(
+        `ProfileConfiguration ${id} not found`,
+        'ProfileConfigService',
+      );
+    }
+
+    return config;
   }
 
   async getAll() {
-    return await this.prisma.profileConfiguration.findMany();
+    const configs = await this.prisma.profileConfiguration.findMany();
+
+    if (configs.length > 0) {
+      Logger.log(
+        `Found ${configs.length} profile configurations`,
+        'ProfileConfigService',
+      );
+    } else {
+      Logger.log(`No profile configurations found`, 'ProfileConfigService');
+    }
+
+    return configs;
   }
 
   async update(id: string, profileConfigDto: UpdateProfileConfigDto) {
-    return await this.prisma.profileConfiguration.update({
+    const config = await this.prisma.profileConfiguration.update({
       where: {
         id,
       },
       data: profileConfigDto,
     });
+
+    Logger.log(
+      `ProfileConfiguration ${config.id} updated`,
+      'ProfileConfigService',
+    );
+
+    return config;
   }
 
   async delete(id: string) {
-    return await this.prisma.profileConfiguration.delete({
+    const config = await this.prisma.profileConfiguration.delete({
       where: {
         id,
       },
     });
+
+    if (config) {
+      Logger.log(
+        `ProfileConfiguration ${config.id} deleted`,
+        'ProfileConfigService',
+      );
+    } else {
+      Logger.log(
+        `ProfileConfiguration ${id} not found`,
+        'ProfileConfigService',
+      );
+    }
+
+    return config;
   }
 }

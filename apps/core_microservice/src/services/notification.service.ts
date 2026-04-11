@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../services/prisma.service';
 import { CreateNotificationDto } from '../../dto/create.notification.dto';
 import { UpdateNotificationDto } from '../../dto/update.notification.dto';
@@ -8,37 +8,82 @@ export class NotificationsService {
   constructor(private prisma: PrismaService) {}
 
   async create(dto: CreateNotificationDto) {
-    return await this.prisma.notification.create({
+    const notification = await this.prisma.notification.create({
       data: dto,
     });
+    Logger.log(
+      `Notification ${notification.id} created`,
+      'NotificationsService',
+    );
+    return notification;
   }
 
   async getById(id: string) {
-    return await this.prisma.notification.findUnique({
+    const notification = await this.prisma.notification.findUnique({
       where: {
         id,
       },
     });
+
+    if (notification) {
+      Logger.log(
+        `Notification ${notification.id} found`,
+        'NotificationsService',
+      );
+    } else {
+      Logger.log(`Notification ${id} not found`, 'NotificationsService');
+    }
+
+    return notification;
   }
 
   async getAll() {
-    return await this.prisma.notification.findMany();
+    const notifications = await this.prisma.notification.findMany();
+
+    if (notifications.length > 0) {
+      Logger.log(
+        `Found ${notifications.length} notifications`,
+        'NotificationsService',
+      );
+    } else {
+      Logger.log(`No notifications found`, 'NotificationsService');
+    }
+
+    return notifications;
   }
 
   async update(id: string, notificationDto: UpdateNotificationDto) {
-    return await this.prisma.notification.update({
+    const notification = await this.prisma.notification.update({
       where: {
         id,
       },
       data: notificationDto,
     });
+
+    Logger.log(
+      `Notification ${notification.id} updated`,
+      'NotificationsService',
+    );
+
+    return notification;
   }
 
   async delete(id: string) {
-    return await this.prisma.notification.delete({
+    const notification = await this.prisma.notification.delete({
       where: {
         id,
       },
     });
+
+    if (notification) {
+      Logger.log(
+        `Notification ${notification.id} deleted`,
+        'NotificationsService',
+      );
+    } else {
+      Logger.log(`Notification ${id} not found`, 'NotificationsService');
+    }
+
+    return notification;
   }
 }

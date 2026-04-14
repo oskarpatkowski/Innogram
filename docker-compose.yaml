@@ -14,6 +14,16 @@ services:
     depends_on:
       db:
         condition: service_healthy
+        
+  auth:
+    env_file: ".env"
+    build:
+      context: .
+      dockerfile: apps/auth_microservice/Dockerfile
+    ports:
+      - "${AUTH_PORT}:3002"
+    environment:
+      NODE_ENV: production
 
   client:
     env_file: ".env"
@@ -42,6 +52,21 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+  
+  redis:
+    image: redis
+    restart: always
+    command: redis-server --appendonly yes
+    ports:
+      - "${REDIS_PORT}:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   pgdata:
+  redisdata:

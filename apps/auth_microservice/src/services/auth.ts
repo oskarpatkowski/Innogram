@@ -1,11 +1,11 @@
-import {SignupDto} from "../dto/signUpDto.js";
-import {prismaClient} from "../data/prismaClient.js";
+import {SignupDto} from "../dto/signUpDto.ts";
+import {prismaClient} from "../data/prismaClient.ts";
 import bcrypt from 'bcrypt'
-import config from '../config/config.js'
+import config from '../config/config.ts'
 import jwt, {type JwtPayload, type SignOptions} from 'jsonwebtoken'
 import type {User} from "@prisma/client";
-import {type JwtPayload as AuthJwtPayload, RedisAuthRepository} from "../data/redisRepository.js";
-import type {LoginDto} from "../dto/loginDto.js";
+import {type JwtPayload as AuthJwtPayload, RedisAuthRepository} from "../data/redisRepository.ts";
+import type {LoginDto} from "../dto/loginDto.ts";
 import {v4 as uuidv4} from 'uuid';
 import ms, {type StringValue} from 'ms'
 import {OAuth2Client} from 'google-auth-library';
@@ -87,7 +87,8 @@ export const registerUser = async (registerUserDto: SignupDto) => {
             passwordHash: hashedPassword,
             providerId: 'local',
             lastLoginAt: new Date(),
-            createdById: '', 
+            createdById: '',
+            updatedById: '',
           }
         },
         profile: {
@@ -255,7 +256,8 @@ export const exchangeCodeForToken = async (code: string, ipAddress: string, user
                 passwordHash: '',
                 providerId: 'google', 
                 lastLoginAt: new Date(),
-                createdById: '', 
+                createdById: '',
+                updatedById: '',
               }
             },
             profile: {

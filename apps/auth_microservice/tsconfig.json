@@ -16,8 +16,9 @@
     // and npm install -D @types/node
     "rootDir": "./src",
     "outDir": "./dist",
-    "noEmit": false,
-    "allowImportingTsExtensions": false,
+    "noEmit": true,
+    "emitDeclarationOnly": true,
+    "allowImportingTsExtensions": true,
     // Other Outputs
     "sourceMap": true,
     "declaration": true,

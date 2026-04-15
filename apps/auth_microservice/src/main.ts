@@ -1,7 +1,7 @@
-import config from './config/config.js'
+import config from './config/config.ts'
 import express from 'express';
-import './data/prismaClient.js';
-import { authRouter } from './routes/router.js';
+import './data/prismaClient.ts';
+import { authRouter } from './routes/router.ts';
 import cors from 'cors';
 import swaggerUi from 'swagger-ui-express';
 import swaggerDocument from 'swagger-jsdoc';

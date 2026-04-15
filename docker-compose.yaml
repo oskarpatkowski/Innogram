@@ -7,7 +7,7 @@ services:
       context: .
       dockerfile: apps/core_microservice/Dockerfile
     ports:
-      - "${CORE_PORT}:3000"
+      - "${CORE_PORT}:${CORE_PORT}"
     environment:
       NODE_ENV: production
       DATABASE_URL: postgresql://${POSTGRES_NAME}:${POSTGRES_PASSWD}@db:5432/${POSTGRES_NAME}?schema=public
@@ -21,7 +21,7 @@ services:
       context: .
       dockerfile: apps/auth_microservice/Dockerfile
     ports:
-      - "${AUTH_PORT}:3002"
+      - "${AUTH_PORT}:${AUTH_PORT}"
     environment:
       NODE_ENV: production
       ALLOWED_ORIGIN: "http://core:3000"
@@ -32,7 +32,7 @@ services:
       context: .
       dockerfile: apps/client_app/Dockerfile
     ports:
-      - "${CLIENT_PORT}:3001"
+      - "${CLIENT_PORT}:${CORE_PORT}"
     environment:
       NODE_ENV: production
   
@@ -47,7 +47,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/
     ports:
-      - "${DB_PORT}:5432"
+      - "${DB_PORT}:${DB_PORT}"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_NAME} -d ${POSTGRES_NAME}"]
       interval: 5s
@@ -59,7 +59,7 @@ services:
     restart: always
     command: redis-server --appendonly yes
     ports:
-      - "${REDIS_PORT}:6379"
+      - "${REDIS_PORT}:${REDIS_PORT}"
     volumes:
       - redisdata:/data
     healthcheck:

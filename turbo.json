@@ -5,7 +5,7 @@
     "db:generate": {
       "cache": true,
       "inputs": ["prisma/schema.prisma"],
-      "outputs": ["node_modules/.prisma/client"]
+      "outputs": ["node_modules/.prisma/client/**", "node_modules/@prisma/client/**"]
     },
     "db:migrate": {
       "cache": false,

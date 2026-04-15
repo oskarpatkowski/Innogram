@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
-jest.unstable_mockModule('../data/redisClient.js', () => ({
+jest.unstable_mockModule('../data/redisClient.ts', () => ({
   redisClient: {
     on: jest.fn(),
     connect: jest.fn(() => Promise.resolve()),
@@ -12,7 +12,7 @@ jest.unstable_mockModule('../data/redisClient.js', () => ({
   },
 }));
 
-jest.unstable_mockModule('../data/prismaClient.js', () => ({
+jest.unstable_mockModule('../data/prismaClient.ts', () => ({
   prismaClient: {
     $connect: jest.fn(() => Promise.resolve()),
     $disconnect: jest.fn(() => Promise.resolve()),
@@ -74,7 +74,7 @@ describe('Auth Service - simple tests', () => {
     (prismaClient.account.findUnique as any).mockResolvedValue(null);
     
     try {
-      const { authenticateUser } = await import('../services/auth.js');
+      const { authenticateUser } = await import('../services/auth.ts');
       await authenticateUser(loginDto as any);
     } catch {
       //

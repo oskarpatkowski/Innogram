@@ -1,6 +1,6 @@
-import type { LoginDto } from "../dto/loginDto.js";
-import type { SignupDto } from "../dto/signUpDto.js"
-import { authenticateUser, registerUser, validateToken, handleLogout, processRefreshtoken, exchangeCodeForToken } from "../services/auth.js"
+import type { LoginDto } from "../dto/loginDto.ts";
+import type { SignupDto } from "../dto/signUpDto.ts"
+import { authenticateUser, registerUser, validateToken, handleLogout, processRefreshtoken, exchangeCodeForToken } from "../services/auth.ts"
 
 export const register = async (registerUserDto: SignupDto) => {
   return await registerUser(registerUserDto);

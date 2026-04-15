@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { logout, refresh, register, authenticate, oauthRegister } from '../controllers/auth.ts'
+import { logout, refresh, register, authenticate, oauthRegister } from '../controllers/auth.js'
 import { validate } from "uuid";
 
 export const authRouter = Router();

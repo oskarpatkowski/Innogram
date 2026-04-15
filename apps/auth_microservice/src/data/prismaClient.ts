@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import config from '../config/config.ts';
+import config from '../config/config.js';
 import { PrismaPg } from '@prisma/adapter-pg';
 
 const adapter = new PrismaPg({

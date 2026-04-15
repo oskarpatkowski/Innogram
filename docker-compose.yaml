@@ -24,6 +24,7 @@ services:
       - "${AUTH_PORT}:3002"
     environment:
       NODE_ENV: production
+      ALLOWED_ORIGIN: "http://core:3000"
 
   client:
     env_file: ".env"

@@ -17,6 +17,7 @@ interface Config {
   googleClientId: string;
   googleClientSecret: string;
   googleRedirectUri: string;
+  allowedOrigin: string;
 }
 
 const config: Config = {
@@ -33,6 +34,7 @@ const config: Config = {
   googleClientId: process.env.GOOGLE_CLIENT_ID || '',
   googleClientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
   googleRedirectUri: process.env.GOOGLE_REDIRECT_URI || '',
+  allowedOrigin: process.env.ALLOWED_ORIGIN || 'http://localhost:3000',
 };
 
 export default config;

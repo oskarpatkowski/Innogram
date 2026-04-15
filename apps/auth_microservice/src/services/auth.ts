@@ -1,14 +1,14 @@
-import { SignupDto } from "../dto/signUpDto.ts";
-import { prismaClient } from "../data/prismaClient.ts";
+import {SignupDto} from "../dto/signUpDto.js";
+import {prismaClient} from "../data/prismaClient.js";
 import bcrypt from 'bcrypt'
-import config from '../config/config.ts'
-import jwt, { type JwtPayload, type SignOptions } from 'jsonwebtoken'
-import type { User } from "@prisma/client";
-import { RedisAuthRepository, type JwtPayload as AuthJwtPayload } from "../data/redisRepository.ts";
-import type { LoginDto } from "../dto/loginDto.ts";
-import { v4 as uuidv4 } from 'uuid';
-import ms, { type StringValue } from 'ms'
-import { OAuth2Client } from 'google-auth-library';
+import config from '../config/config.js'
+import jwt, {type JwtPayload, type SignOptions} from 'jsonwebtoken'
+import type {User} from "@prisma/client";
+import {type JwtPayload as AuthJwtPayload, RedisAuthRepository} from "../data/redisRepository.js";
+import type {LoginDto} from "../dto/loginDto.js";
+import {v4 as uuidv4} from 'uuid';
+import ms, {type StringValue} from 'ms'
+import {OAuth2Client} from 'google-auth-library';
 
 const googleClient = new OAuth2Client(
   config.googleClientId,
@@ -102,12 +102,12 @@ export const registerUser = async (registerUserDto: SignupDto) => {
       }
     });
 
-    const updatedUser = await tx.user.update({
-      where: { 
-        id: newUser.id 
+    return tx.user.update({
+      where: {
+        id: newUser.id
       },
       data: {
-        createdById: newUser.id, 
+        createdById: newUser.id,
         account: {
           update: {
             createdById: newUser.id
@@ -124,7 +124,6 @@ export const registerUser = async (registerUserDto: SignupDto) => {
         profile: true
       }
     });
-    return updatedUser;
   });
 
   const expiryString = config.jwtRefreshExpiresIn as StringValue;
@@ -271,12 +270,12 @@ export const exchangeCodeForToken = async (code: string, ipAddress: string, user
           }
         });
 
-        return await tx.user.update({
-          where: { id: newUser.id },
+        return tx.user.update({
+          where: {id: newUser.id},
           data: {
-            createdById: newUser.id, 
-            account: { update: { createdById: newUser.id } },
-            profile: { update: { createdById: newUser.id } }
+            createdById: newUser.id,
+            account: {update: {createdById: newUser.id}},
+            profile: {update: {createdById: newUser.id}}
           }
         });
       });

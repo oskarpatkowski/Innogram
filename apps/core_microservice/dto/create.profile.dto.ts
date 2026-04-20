@@ -1,10 +1,9 @@
 import {
   IsBoolean,
-  isDate,
+  IsDate,
   IsNotEmpty,
   IsOptional,
   IsString,
-  Max,
   MaxLength,
 } from 'class-validator';
 
@@ -23,6 +22,8 @@ export class CreateProfileDto {
   @MaxLength(100)
   displayName!: string;
 
+  @IsDate()
+  @IsNotEmpty()
   birthday!: Date;
 
   @IsNotEmpty()

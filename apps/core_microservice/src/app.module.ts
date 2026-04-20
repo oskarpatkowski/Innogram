@@ -11,6 +11,7 @@ import { UsersModule } from './modules/users.module';
 import { ConfigModule } from '@nestjs/config';
 import { AssetsModule } from './modules/assets.module';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { providePrismaClientExceptionFilter } from 'nestjs-prisma';
 
 @Module({
   imports: [
@@ -32,7 +33,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
     }),
   ],
   controllers: [AppController],
-  providers: [AppService, PrismaService],
+  providers: [AppService, PrismaService, providePrismaClientExceptionFilter()],
   exports: [PrismaService],
 })
 export class AppModule {}

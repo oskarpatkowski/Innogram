@@ -29,7 +29,7 @@ export class AssetsController {
     return await this.assetsService.getAll();
   }
 
-  @Put()
+  @Put(':id')
   async update(@Param('id') id: string, @Body() assetDto: CreateAssetDto) {
     return await this.assetsService.update(id, assetDto);
   }

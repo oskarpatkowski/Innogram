@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main, dev]
+    branches: [main, dev]
   pull_request:
-    branches: [ main, dev]
+    branches: [main, dev]
 
 jobs:
   build:
@@ -30,24 +30,24 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [ 24.x ] 
+        node-version: [24.x]
     steps:
-    - uses: actions/checkout@v4
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-        
-    - run: npm ci
+      - uses: actions/checkout@v4
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "npm"
 
-    - name: Run Migrations
-      run: npx turbo run db:migrate
-      
-    - run: npx turbo build
-    
-    - name: Run Tests
-      run: npx turbo test
-    
-    - run: npx turbo lint
-    - run: npx turbo check-types
+      - run: npm ci
+
+      - name: Run Migrations
+        run: npx turbo run migrate
+
+      - run: npx turbo build
+
+      - name: Run Tests
+        run: npx turbo test
+
+      - run: npx turbo lint
+      - run: npx turbo check-types

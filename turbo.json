@@ -10,9 +10,14 @@
         "../../node_modules/@prisma/client/**"
       ]
     },
-    "migrate": {
+    "migrate:deploy": {
       "cache": false,
       "dependsOn": ["^generate"]
+    },
+    "migrate:dev": {
+      "cache": false,
+      "dependsOn": ["^generate"],
+      "persistent": true
     },
     "build": {
       "dependsOn": ["^build", "^generate"],

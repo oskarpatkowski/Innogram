@@ -42,7 +42,7 @@ jobs:
       - run: npm ci
 
       - name: Run Migrations
-        run: npx turbo run migrate
+        run: npx turbo run migrate:deploy
 
       - run: npx turbo build
 

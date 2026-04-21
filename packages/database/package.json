@@ -4,7 +4,8 @@
   "main": "index.ts",
   "scripts": {
     "generate": "prisma generate",
-    "migrate": "prisma migrate dev",
+    "migrate:dev": "prisma migrate dev",
+    "migrate:deploy": "prisma migrate deploy",
     "push": "prisma db push",
     "studio": "prisma studio"
   },

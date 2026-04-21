@@ -1,5 +1,5 @@
-import { Type } from '@prisma/client';
-import { IsString, IsNotEmpty, MaxLength, IsEnum } from 'class-validator';
+import { Type } from '@innogram/database';
+import { IsEnum, IsNotEmpty, IsString, MaxLength } from 'class-validator';
 
 export class CreateChatDto {
   @IsString()

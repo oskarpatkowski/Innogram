@@ -6,12 +6,15 @@ import {
   Param,
   Put,
   Delete,
+  UseGuards,
 } from '@nestjs/common';
 import { ProfileService } from '../services/profile.service';
 import { CreateProfileDto } from '../../dto/create.profile.dto';
 import { UpdateProfileDto } from '../../dto/update.profile.dto';
+import { AccessGuard } from '../guards/access.guard';
 
 @Controller('profiles')
+@UseGuards(AccessGuard)
 export class ProfileController {
   constructor(private readonly profileService: ProfileService) {}
 

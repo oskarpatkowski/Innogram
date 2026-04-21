@@ -10,11 +10,12 @@
     "test": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js",
     "dev": "node ./src/main.ts",
     "build": "tsc",
+    "check-types": "tsc --noEmit",
     "start": "node dist/main.js",
     "lint": "eslint ."
   },
   "dependencies": {
-    "@prisma/client": "^7.7.0",
+    "@innogram/database": "*",
     "bcrypt": "^6.0.0",
     "class-validator": "^0.15.1",
     "cors": "^2.8.6",
@@ -37,7 +38,6 @@
     "eslint": "^9.39.4",
     "globals": "^14.0.0",
     "jest": "^30.3.0",
-    "prisma": "^7.7.0",
     "supertest": "^7.2.2",
     "ts-jest": "^29.4.9",
     "typescript-eslint": "^8.58.2"

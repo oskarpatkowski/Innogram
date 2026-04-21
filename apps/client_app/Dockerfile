@@ -1,4 +1,4 @@
-FROM node:24-slim AS base
+FROM node:25-slim AS base
 WORKDIR /app
 
 COPY package.json package-lock.json* ./
@@ -12,9 +12,9 @@ FROM base AS builder
 
 WORKDIR /app
 
-RUN npm run build --workspace=innogram-next
+RUN npx turbo build --filter=innogram-next...
 
-FROM node:24-slim AS runner
+FROM node:25-slim AS runner
 WORKDIR /app
 
 COPY package.json package-lock.json* ./

@@ -1,4 +1,4 @@
-import { Provider } from '@prisma/client';
+import { Provider } from '@innogram/database';
 import {
   IsEmail,
   IsEnum,

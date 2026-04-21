@@ -1,5 +1,3 @@
-# docker-compose.yml
-
 services:
   core:
     env_file: ".env"
@@ -14,17 +12,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
-        
-  auth:
-    env_file: ".env"
-    build:
-      context: .
-      dockerfile: apps/auth_microservice/Dockerfile
-    ports:
-      - "${AUTH_PORT}:${AUTH_PORT}"
-    environment:
-      NODE_ENV: production
-      ALLOWED_ORIGIN: "http://core:3000"
 
   client:
     env_file: ".env"
@@ -32,10 +19,10 @@ services:
       context: .
       dockerfile: apps/client_app/Dockerfile
     ports:
-      - "${CLIENT_PORT}:${CORE_PORT}"
+      - "${CLIENT_PORT}:${CLIENT_PORT}"
     environment:
       NODE_ENV: production
-  
+
   db:
     env_file: ".env"
     image: postgres
@@ -45,21 +32,21 @@ services:
       POSTGRES_USER: ${POSTGRES_NAME}
       POSTGRES_DB: ${POSTGRES_NAME}
     volumes:
-      - pgdata:/var/lib/postgresql/
+      - pgdata:/var/lib/postgresql/data
     ports:
-      - "${DB_PORT}:${DB_PORT}"
+      - "${DB_PORT}:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_NAME} -d ${POSTGRES_NAME}"]
       interval: 5s
       timeout: 5s
       retries: 5
-  
+
   redis:
     image: redis
     restart: always
     command: redis-server --appendonly yes
     ports:
-      - "${REDIS_PORT}:${REDIS_PORT}"
+      - "${REDIS_PORT}:6379"
     volumes:
       - redisdata:/data
     healthcheck:
@@ -67,6 +54,25 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  auth:
+    env_file: ".env"
+    build:
+      context: .
+      dockerfile: apps/auth_microservice/Dockerfile
+    ports:
+      - "${AUTH_PORT}:${AUTH_PORT}"
+    environment:
+      NODE_ENV: production
+      ALLOWED_ORIGIN: "http://localhost:3000"
+      DATABASE_URL: postgresql://${POSTGRES_NAME}:${POSTGRES_PASSWD}@db:5432/${POSTGRES_NAME}?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
 volumes:
   pgdata:

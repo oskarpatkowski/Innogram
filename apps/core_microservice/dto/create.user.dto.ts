@@ -1,4 +1,4 @@
-import { Role } from '@prisma/client';
+import { Role } from '@innogram/database';
 import { IsBoolean, IsEnum, IsOptional } from 'class-validator';
 
 export class CreateUserDto {

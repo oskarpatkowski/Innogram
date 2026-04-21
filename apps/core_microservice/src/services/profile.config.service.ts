@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from './prisma.service';
-import { UpdateProfileConfigDto } from '../../dto/update.profileconfig.dto';
 import { CreateProileConfigDto } from '../../dto/create.profileconfig.dto';
+import { UpdateProfileConfigDto } from '../../dto/update.profileconfig.dto';
+import { PrismaService } from './prisma.service';
 
 @Injectable()
 export class ProfileConfigService {

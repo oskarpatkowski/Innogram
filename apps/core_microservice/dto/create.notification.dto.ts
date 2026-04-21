@@ -1,5 +1,4 @@
-import { NotificationType } from '@prisma/client';
-import { JsonObject } from '@prisma/client/runtime/client';
+import { NotificationType } from '@innogram/database';
 import {
   IsEnum,
   IsJSON,

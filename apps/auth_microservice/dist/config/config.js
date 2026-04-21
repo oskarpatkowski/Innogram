@@ -1,0 +1,20 @@
+import dotenv from 'dotenv';
+dotenv.config({ path: '../../.env' });
+const config = {
+    port: Number(process.env.AUTH_PORT) || 3000,
+    redisPort: Number(process.env.REDIS_PORT) || 6379,
+    nodeEnv: process.env.NODE_ENV || 'development',
+    redisUname: process.env.REDIS_USERNAME || '',
+    redisPassword: process.env.REDIS_PASSWORD || '',
+    databaseUrl: process.env.DATABASE_URL || '',
+    jwtSecret: process.env.JWT_SECRET || '',
+    jwtExpiresIn: process.env.JWT_EXPIRES_IN || '15M',
+    jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7D',
+    jwtRefreshSecret: process.env.JWT_REFRESH_SECRET || '',
+    googleClientId: process.env.GOOGLE_CLIENT_ID || '',
+    googleClientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+    googleRedirectUri: process.env.GOOGLE_REDIRECT_URI || '',
+    allowedOrigin: process.env.ALLOWED_ORIGIN || 'http://localhost:3000',
+};
+export default config;
+//# sourceMappingURL=config.js.map

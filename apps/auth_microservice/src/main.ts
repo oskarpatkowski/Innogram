@@ -1,11 +1,14 @@
 import cors from "cors";
 import express from "express";
+import { errorLogger } from "express-winston";
 import helmet from "helmet";
 import swaggerDocument from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
 import config from "./config/config.js";
 import "./data/prismaClient.js";
 import { authRouter } from "./routes/router.js";
+import { errorHandler } from "./services/error.middleware.js";
+import { requestLogger } from "./services/logger.middleware.js";
 
 const corsOptions = {
   origin: config.allowedOrigin,
@@ -34,6 +37,9 @@ const app = express();
 app.use(helmet());
 app.use(cors(corsOptions));
 app.use(express.json());
+app.use(requestLogger);
+app.use(errorLogger);
+app.use(errorHandler);
 app.use("/internal/auth", authRouter);
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 const port = config.port;

@@ -1,24 +1,30 @@
-import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateCommentDto {
-  @IsString()
-  @IsNotEmpty()
+  @IsString({ message: 'postId must be a string' })
+  @IsNotEmpty({ message: 'postId is required' })
+  @ApiProperty()
   postId!: string;
 
-  @IsString()
-  @IsNotEmpty()
+  @IsString({ message: 'profileId must be a string' })
+  @IsNotEmpty({ message: 'profileId is required' })
+  @ApiProperty()
   profileId!: string;
 
   @IsOptional()
-  @IsString()
-  @IsNotEmpty()
+  @IsString({ message: 'parentCommentId must be a string' })
+  @IsNotEmpty({ message: 'parentCommentId is required' })
+  @ApiProperty()
   parentCommentId?: string;
 
-  @IsString()
-  @IsNotEmpty()
+  @IsString({ message: 'content must be a string' })
+  @IsNotEmpty({ message: 'content is required' })
+  @ApiProperty()
   content!: string;
 
-  @IsString()
-  @IsNotEmpty()
+  @IsString({ message: 'createdById must be a string' })
+  @IsNotEmpty({ message: 'createdById is required' })
+  @ApiProperty()
   createdById!: string;
 }

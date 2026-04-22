@@ -1,4 +1,10 @@
-import { ConsoleLogger, Logger, ValidationPipe } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConsoleLogger,
+  Logger,
+  ValidationError,
+  ValidationPipe,
+} from '@nestjs/common';
 import { HttpAdapterHost, NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
@@ -23,6 +29,8 @@ async function bootstrap() {
     .setDescription('The Innogram core microservice API')
     .setVersion('0.1')
     .addTag('core')
+    .addBearerAuth()
+    .addCookieAuth('accessToken')
     .build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, documentFactory);
@@ -32,6 +40,12 @@ async function bootstrap() {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+      exceptionFactory: (validationErrors: ValidationError[] = []) => {
+        const messages = validationErrors.flatMap((error) =>
+          Object.values(error.constraints || {}),
+        );
+        return new BadRequestException(messages);
+      },
     }),
   );
 

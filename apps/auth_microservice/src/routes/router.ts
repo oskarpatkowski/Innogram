@@ -1,5 +1,4 @@
 import { Router } from "express";
-import { validate } from "uuid";
 import {
   authenticate,
   logout,
@@ -7,6 +6,7 @@ import {
   oauthRegister,
   refresh,
   register,
+  validate,
 } from "../controllers/auth.js";
 
 export const authRouter = Router();
@@ -22,12 +22,12 @@ authRouter.post("/login", async (req, res) => {
 });
 
 authRouter.post("/validate", async (req, res) => {
-  const data = await validate(req.body);
+  const data = await validate(req.body.accessToken); // Pass accessToken from req.body
   res.json(data);
 });
 
 authRouter.post("/logout", async (req, res) => {
-  const data = await logout(req.body);
+  const data = await logout(req.body.refreshToken);
   res.json(data);
 });
 

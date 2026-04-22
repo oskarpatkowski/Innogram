@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
   IsDate,
   IsEmail,
@@ -27,6 +28,7 @@ export class SignupDto {
   @ApiProperty()
   username!: string;
 
+  @Type(() => Date)
   @IsDate({ message: 'birthdate must be a valid date' })
   @IsNotEmpty({ message: 'birthdate is required' })
   @ApiProperty()
@@ -35,10 +37,10 @@ export class SignupDto {
   @IsString({ message: 'useragent must be a string' })
   @IsNotEmpty({ message: 'useragent is required' })
   @ApiProperty()
-  useragent!: string;
+  userAgent!: string;
 
   @IsString({ message: 'ipaddress must be a string' })
   @IsNotEmpty({ message: 'ipaddress is required' })
   @ApiProperty()
-  ipaddress!: string;
+  ipAddress!: string;
 }

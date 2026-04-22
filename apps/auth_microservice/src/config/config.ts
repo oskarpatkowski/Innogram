@@ -19,6 +19,10 @@ interface Config {
   googleRedirectUri: string;
   allowedOrigin: string;
   redisHost: string;
+  postgresName: string;
+  postgresPassword: string;
+  postgresHost: string;
+  postgresPort: string;
 }
 
 const config: Config = {
@@ -39,6 +43,10 @@ const config: Config = {
   googleRedirectUri: process.env.GOOGLE_REDIRECT_URI || "",
   allowedOrigin: process.env.ALLOWED_ORIGIN || "http://localhost:3000",
   redisHost: process.env.REDIS_HOST || "localhost",
+  postgresName: process.env.POSTGRES_NAME || "postgres",
+  postgresPassword: process.env.POSTGRES_PASSWD || "postgres",
+  postgresHost: process.env.DB_HOST || "localhost",
+  postgresPort: process.env.DB_PORT || "5432",
 };
 
 export default config;

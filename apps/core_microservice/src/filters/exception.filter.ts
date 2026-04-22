@@ -1,7 +1,7 @@
 import {
-  ExceptionFilter,
-  Catch,
   ArgumentsHost,
+  Catch,
+  ExceptionFilter,
   HttpException,
   Logger,
 } from '@nestjs/common';
@@ -20,7 +20,14 @@ export class HttpExceptionFilter implements ExceptionFilter {
       exception.stack,
     );
 
+    const exceptionResponse = exception.getResponse();
+    const errorPayload =
+      typeof exceptionResponse === 'string'
+        ? { message: exceptionResponse }
+        : exceptionResponse;
+
     response.status(status).json({
+      ...errorPayload,
       statusCode: status,
       timestamp: new Date().toISOString(),
       path: request.url,

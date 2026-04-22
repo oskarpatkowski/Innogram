@@ -43,7 +43,9 @@ export const oauthRegister = async (
 };
 
 export const oauthInitiate = async () => {
+  const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${config.googleClientId}&redirect_uri=${config.googleRedirectUri}&response_type=code&scope=https://www.googleapis.com/auth/userinfo.email`;
+  console.log(`[AuthService] Generated Google OAuth URL: ${googleAuthUrl}`);
   return {
-    url: `https://accounts.google.com/o/oauth2/v2/auth?client_id=${config.googleClientId}&redirect_uri=${config.googleRedirectUri}&response_type=code&scope=https://www.googleapis.com/auth/userinfo.email`,
+    url: googleAuthUrl,
   };
 };

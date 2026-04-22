@@ -6,6 +6,7 @@ import {
   Param,
   Post,
   Query,
+  Req,
   Res,
 } from '@nestjs/common';
 import express from 'express';
@@ -24,7 +25,7 @@ export class AuthController {
     @Res({ passthrough: true }) res: express.Response,
   ) {
     const response = await this.authService.register(signupDto);
-    const { accessToken, refreshToken } = response.data;
+    const { accessToken, refreshToken } = response;
 
     res.cookie('accessToken', accessToken, { httpOnly: true });
     res.cookie('refreshToken', refreshToken, { httpOnly: true });
@@ -39,7 +40,7 @@ export class AuthController {
     @Res({ passthrough: true }) res: express.Response,
   ) {
     const response = await this.authService.login(loginDto);
-    const { accessToken, refreshToken } = response.data;
+    const { accessToken, refreshToken } = response;
 
     res.cookie('accessToken', accessToken, { httpOnly: true });
     res.cookie('refreshToken', refreshToken, { httpOnly: true });
@@ -50,7 +51,7 @@ export class AuthController {
   @Post('validate')
   @HttpCode(200)
   public async handleValidate(
-    @Body() accessToken: string,
+    @Body('accessToken') accessToken: string,
   ): Promise<TokenValidationResponse> {
     return await this.authService.validateToken(accessToken);
   }
@@ -63,7 +64,7 @@ export class AuthController {
   ) {
     try {
       const response = await this.authService.refreshToken(refreshDto);
-      const { accessToken, refreshToken } = response.data;
+      const { accessToken, refreshToken } = response;
 
       res.cookie('accessToken', accessToken, { httpOnly: true });
       res.cookie('refreshToken', refreshToken, { httpOnly: true });
@@ -79,21 +80,32 @@ export class AuthController {
   @Post('logout')
   @HttpCode(200)
   public async handleLogout(
-    @Body() refreshTokenId: string,
+    @Req() req: express.Request,
     @Res({ passthrough: true }) res: express.Response,
   ) {
+    const refreshToken: string | undefined = req.cookies?.[
+      'refreshToken'
+    ] as string;
     res.clearCookie('accessToken');
     res.clearCookie('refreshToken');
-    return await this.authService.logout(refreshTokenId);
+    if (refreshToken) {
+      return await this.authService.logout(refreshToken);
+    }
+    return { message: 'Logged out successfully' };
   }
 
   @Get('login/:provider')
-  public async handleOAuthInit(
-    @Param('provider') provider: string,
-    @Res({ passthrough: true }) res: express.Response,
-  ) {
+  public async handleOAuthInit(@Param('provider') provider: string) {
+    console.log(`[AuthController] Initiating OAuth for ${provider}`);
     const response = await this.authService.oAuthInit(provider);
-    res.redirect(response.data.url);
+    console.log(`[AuthController] Generated OAuth URL: ${response.url}`);
+    if (!response.url) {
+      console.error(
+        `[AuthController] No URL returned from auth service for provider ${provider}`,
+      );
+    }
+
+    return response;
   }
 
   @Get(':provider/callback')
@@ -110,7 +122,7 @@ export class AuthController {
       userAgent: useragent,
     };
     const response = await this.authService.oAuthCallback(request, provider);
-    const { accessToken, refreshToken } = response.data;
+    const { accessToken, refreshToken } = response;
 
     res.cookie('accessToken', accessToken, { httpOnly: true });
     res.cookie('refreshToken', refreshToken, { httpOnly: true });

@@ -1,6 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { HttpException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import axios from 'axios';
+import axios, { AxiosInstance } from 'axios';
 import { LoginDto } from '../../dto/login.dto';
 import { RefreshDto } from '../../dto/refresh.dto';
 import { SignupDto } from '../../dto/signup.dto';
@@ -10,7 +10,7 @@ interface InternalSignupDto {
   username: string;
   password: string;
   email: string;
-  birthdate: Date;
+  birthday: Date;
   bio: string;
   ipAddress: string;
   userAgent: string;
@@ -46,13 +46,35 @@ interface OAuthRequest {
 
 @Injectable()
 export class AuthService {
-  private authPort: number;
+  private authServiceUrl: string;
+  private axiosClient: AxiosInstance;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
   ) {
-    this.authPort = configService.get<number>('AUTH_PORT') || 3002;
+    const authPort = configService.get<number>('AUTH_PORT') || 3002;
+    this.authServiceUrl =
+      configService.get<string>('AUTH_SERVICE_URL') ||
+      `http://localhost:${authPort}`;
+
+    this.axiosClient = axios.create({
+      baseURL: this.authServiceUrl,
+    });
+
+    this.axiosClient.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (axios.isAxiosError(error) && error.response) {
+          const data = error.response.data as
+            | { error?: { message?: string } }
+            | undefined;
+          const message = data?.error?.message || error.message;
+          throw new HttpException(message, error.response.status);
+        }
+        throw error;
+      },
+    );
   }
 
   public async register(signupDto: SignupDto) {
@@ -62,70 +84,86 @@ export class AuthService {
       username: signupDto.username,
       password: signupDto.password,
       email: signupDto.email,
-      birthdate: signupDto.birthdate,
+      birthday: signupDto.birthdate,
       bio: 'A short bio',
-      ipAddress: signupDto.ipaddress,
-      userAgent: signupDto.useragent,
+      ipAddress: signupDto.ipAddress,
+      userAgent: signupDto.userAgent,
     };
 
-    return await axios.post<tokensResponse>(
-      `http://localhost:${this.authPort}/internal/auth/register`,
+    const response = await this.axiosClient.post<tokensResponse>(
+      '/internal/auth/register',
       internalSignupDto,
     );
+
+    return response.data;
   }
 
   public async login(loginDto: LoginDto) {
     Logger.log(`Logging in user: ${loginDto.email}`, 'AuthService');
 
-    return await axios.post<tokensResponse>(
-      `http://localhost:${this.authPort}/internal/auth/login`,
+    const response = await this.axiosClient.post<tokensResponse>(
+      '/internal/auth/login',
       loginDto,
     );
+
+    return response.data;
   }
 
   public async validateToken(accessToken: string) {
     Logger.log('Validating token', 'AuthService');
 
-    const response = await axios.post<TokenValidationResponse>(
-      `http://localhost:${this.authPort}/internal/auth/validate`,
-      { accessToken },
+    const response = await this.axiosClient.post<TokenValidationResponse>(
+      '/internal/auth/validate',
+      {
+        accessToken,
+      },
     );
-
+    console.log(response.data);
     return response.data;
   }
 
   public async refreshToken(refreshDto: RefreshDto) {
     Logger.log('Refreshing token', 'AuthService');
 
-    return await axios.post<tokensResponse>(
-      `http://localhost:${this.authPort}/internal/auth/refresh`,
+    const response = await this.axiosClient.post<tokensResponse>(
+      '/internal/auth/refresh',
       refreshDto,
     );
+
+    return response.data;
   }
 
-  public async logout(refreshTokenId: string) {
+  public async logout(refreshToken: string) {
     Logger.log('Logging out user', 'AuthService');
 
-    return await axios.post(
-      `http://localhost:${this.authPort}/internal/auth/logout`,
-      { refreshTokenId },
+    const response = await this.axiosClient.post<{ message?: string }>(
+      '/internal/auth/logout',
+      {
+        refreshToken,
+      },
     );
+
+    return response.data;
   }
 
   public async oAuthInit(provider: string) {
     Logger.log(`Initiating OAuth to ${provider}`, 'AuthService');
 
-    return await axios.get<oAuthRedirectUrl>(
-      `http://localhost:${this.authPort}/internal/auth/oauth/initiate`,
+    const response = await this.axiosClient.get<oAuthRedirectUrl>(
+      '/internal/auth/oauth/initiate',
     );
+
+    return response.data;
   }
 
   public async oAuthCallback(oAuthRequest: OAuthRequest, provider: string) {
     Logger.log(`Callback from ${provider}`, 'AuthService');
 
-    return await axios.post<tokensResponse>(
-      `http://localhost:${this.authPort}/internal/auth/oauth/exchange-code`,
+    const response = await this.axiosClient.post<tokensResponse>(
+      '/internal/auth/oauth/exchange-code',
       oAuthRequest,
     );
+
+    return response.data;
   }
 }

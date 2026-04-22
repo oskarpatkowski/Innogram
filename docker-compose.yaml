@@ -8,10 +8,13 @@ services:
       - "${CORE_PORT}:${CORE_PORT}"
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://${POSTGRES_NAME}:${POSTGRES_PASSWD}@db:5432/${POSTGRES_NAME}?schema=public
+      DATABASE_URL: postgresql://${POSTGRES_NAME}:${POSTGRES_PASSWD}@db:5432/${POSTGRES_NAME}
+      AUTH_SERVICE_URL: "http://auth:${AUTH_PORT}"
     depends_on:
       db:
         condition: service_healthy
+      auth:
+        condition: service_started
 
   client:
     env_file: ".env"
@@ -32,7 +35,7 @@ services:
       POSTGRES_USER: ${POSTGRES_NAME}
       POSTGRES_DB: ${POSTGRES_NAME}
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql
     ports:
       - "${DB_PORT}:5432"
     healthcheck:
@@ -64,8 +67,8 @@ services:
       - "${AUTH_PORT}:${AUTH_PORT}"
     environment:
       NODE_ENV: production
-      ALLOWED_ORIGIN: "http://localhost:3000"
-      DATABASE_URL: postgresql://${POSTGRES_NAME}:${POSTGRES_PASSWD}@db:5432/${POSTGRES_NAME}?schema=public
+      ALLOWED_ORIGIN: "http://localhost:${CORE_PORT}"
+      DATABASE_URL: postgresql://${POSTGRES_NAME}:${POSTGRES_PASSWD}@db:5432/${POSTGRES_NAME}
       REDIS_HOST: redis
       REDIS_PORT: 6379
     depends_on:

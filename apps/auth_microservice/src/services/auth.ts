@@ -20,11 +20,28 @@ const googleClient = new OAuth2Client(
   config.googleRedirectUri,
 );
 
+export class HttpError extends Error {
+  statusCode: number;
+  constructor(message: string, statusCode: number) {
+    super(message);
+    this.statusCode = statusCode;
+  }
+}
+
 const redisAuthRepository = new RedisAuthRepository();
 
 const hashPassword = async (password: string) => {
   return await bcrypt.hash(password, 10);
 };
+
+const normalizeExpiry = (expiry?: string | number) => {
+  if (!expiry) return undefined;
+  if (typeof expiry === "string" && !isNaN(Number(expiry))) {
+    return Number(expiry);
+  }
+  return expiry;
+};
+
 const generateToken = (user: User) => {
   const accessSignOptions: SignOptions = {};
 
@@ -47,10 +64,9 @@ const generateToken = (user: User) => {
   const refreshSignOptions: SignOptions = {};
 
   if (config.jwtRefreshExpiresIn) {
-    refreshSignOptions.expiresIn = config.jwtRefreshExpiresIn as Exclude<
-      SignOptions["expiresIn"],
-      undefined
-    >;
+    refreshSignOptions.expiresIn = normalizeExpiry(
+      config.jwtRefreshExpiresIn,
+    ) as Exclude<SignOptions["expiresIn"], undefined>;
   }
   const refreshTokenId = uuidv4();
 
@@ -67,6 +83,14 @@ const generateToken = (user: User) => {
   return { accessToken, refreshToken, refreshTokenId };
 };
 
+const getRedisExpirySeconds = (expiry?: string | number) => {
+  if (!expiry) return 0;
+  if (typeof expiry === "string" && !isNaN(Number(expiry))) {
+    return Number(expiry); // Already in seconds
+  }
+  return ms(expiry as StringValue) / 1000;
+};
+
 export const registerUser = async (registerUserDto: SignupDto) => {
   const account = await prismaClient.account.findUnique({
     where: {
@@ -80,26 +104,30 @@ export const registerUser = async (registerUserDto: SignupDto) => {
   });
 
   if (account) {
-    throw new Error("Account with that email already exists");
+    throw new HttpError("Account with that email already exists", 409);
   }
   if (profile) {
-    throw new Error("Profile with that name already exists");
+    throw new HttpError("Profile with that name already exists", 409);
   }
 
   const hashedPassword = await hashPassword(registerUserDto.password);
 
   const user = await prismaClient.$transaction(
     async (tx: Prisma.TransactionClient) => {
-      const newUser = await tx.user.create({
+      const userId = uuidv4();
+
+      return tx.user.create({
         data: {
+          id: userId,
+          createdById: userId,
           account: {
             create: {
               email: registerUserDto.email,
               passwordHash: hashedPassword,
               providerId: "local",
               lastLoginAt: new Date(),
-              createdById: "",
-              updatedById: "",
+              createdById: userId,
+              updatedById: userId,
             },
           },
           profile: {
@@ -108,26 +136,7 @@ export const registerUser = async (registerUserDto: SignupDto) => {
               displayName: registerUserDto.username,
               birthday: registerUserDto.birthday,
               bio: registerUserDto.bio,
-              createdById: "",
-            },
-          },
-        },
-      });
-
-      return tx.user.update({
-        where: {
-          id: newUser.id,
-        },
-        data: {
-          createdById: newUser.id,
-          account: {
-            update: {
-              createdById: newUser.id,
-            },
-          },
-          profile: {
-            update: {
-              createdById: newUser.id,
+              createdById: userId,
             },
           },
         },
@@ -139,10 +148,7 @@ export const registerUser = async (registerUserDto: SignupDto) => {
     },
   );
 
-  const expiryString = config.jwtRefreshExpiresIn as StringValue;
-
-  const redisExpirySeconds = ms(expiryString) / 1000;
-
+  const redisExpirySeconds = getRedisExpirySeconds(config.jwtRefreshExpiresIn);
   const tokens = generateToken(user);
   await redisAuthRepository.storeRefreshTokenId(
     user.id,
@@ -163,7 +169,7 @@ export const authenticateUser = async (loginDto: LoginDto) => {
   });
 
   if (!account) {
-    throw new Error("User not found");
+    throw new HttpError("User not found", 404);
   }
   const isPasswordValid = await bcrypt.compare(
     loginDto.password,
@@ -171,22 +177,19 @@ export const authenticateUser = async (loginDto: LoginDto) => {
   );
 
   if (!isPasswordValid) {
-    throw new Error("Invalid password");
+    throw new HttpError("Invalid password", 401);
   }
 
   const user = await prismaClient.user.findUnique({
     where: { id: account.userId },
   });
   if (!user) {
-    throw new Error("User record missing");
+    throw new HttpError("User record missing", 404);
   }
 
   const tokens = generateToken(user);
 
-  const expiryString = config.jwtRefreshExpiresIn as StringValue;
-
-  const redisExpirySeconds = ms(expiryString) / 1000;
-
+  const redisExpirySeconds = getRedisExpirySeconds(config.jwtRefreshExpiresIn);
   await redisAuthRepository.storeRefreshTokenId(
     account.userId,
     tokens.refreshTokenId,
@@ -209,18 +212,18 @@ export const processRefreshtoken = async (
   ) as JwtPayload;
 
   if (!decoded.jwtId || !decoded.userId) {
-    throw new Error("Invalid token payload");
+    throw new HttpError("Invalid token payload", 401);
   }
 
   const session = await redisAuthRepository.findSessionByTokenId(decoded.jwtId);
   if (!session) {
-    throw new Error("Session not found");
+    throw new HttpError("Session not found", 401);
   }
   const user = await prismaClient.user.findUnique({
     where: { id: decoded.userId },
   });
   if (!user) {
-    throw new Error("User not found");
+    throw new HttpError("User not found", 404);
   }
   const isBlacklisted = await redisAuthRepository.isTokenBlacklisted({
     jwtId: decoded.jwtId,
@@ -228,14 +231,11 @@ export const processRefreshtoken = async (
     exp: decoded.exp || 0,
   });
   if (isBlacklisted) {
-    throw new Error("Token has been revoked");
+    throw new HttpError("Token has been revoked", 401);
   }
 
   const tokens = generateToken(user);
-  const expiryString = config.jwtRefreshExpiresIn as StringValue;
-
-  const redisExpirySeconds = ms(expiryString) / 1000;
-
+  const redisExpirySeconds = getRedisExpirySeconds(config.jwtRefreshExpiresIn);
   await redisAuthRepository.storeRefreshTokenId(
     user.id,
     tokens.refreshTokenId,
@@ -255,7 +255,7 @@ export const exchangeCodeForToken = async (
   const { tokens: googleTokens } = await googleClient.getToken(code);
 
   if (!googleTokens.id_token) {
-    throw new Error("Failed to receive ID token from Google");
+    throw new HttpError("Failed to receive ID token from Google", 401);
   }
 
   const ticket = await googleClient.verifyIdToken({
@@ -266,7 +266,7 @@ export const exchangeCodeForToken = async (
   const payload = ticket.getPayload();
 
   if (!payload || !payload.email) {
-    throw new Error("Invalid Google ID token payload");
+    throw new HttpError("Invalid Google ID token payload", 401);
   }
 
   const account = await prismaClient.account.findUnique({
@@ -281,16 +281,20 @@ export const exchangeCodeForToken = async (
       "";
     user = await prismaClient.$transaction(
       async (tx: Prisma.TransactionClient) => {
-        const newUser = await tx.user.create({
+        const userId = uuidv4();
+
+        return tx.user.create({
           data: {
+            id: userId,
+            createdById: userId,
             account: {
               create: {
                 email: payload.email!,
                 passwordHash: "",
                 providerId: "google",
                 lastLoginAt: new Date(),
-                createdById: "",
-                updatedById: "",
+                createdById: userId,
+                updatedById: userId,
               },
             },
             profile: {
@@ -299,18 +303,9 @@ export const exchangeCodeForToken = async (
                 displayName: payload.name || baseUsername,
                 birthday: new Date(Date.now()),
                 bio: "",
-                createdById: "",
+                createdById: userId,
               },
             },
-          },
-        });
-
-        return tx.user.update({
-          where: { id: newUser.id },
-          data: {
-            createdById: newUser.id,
-            account: { update: { createdById: newUser.id } },
-            profile: { update: { createdById: newUser.id } },
           },
         });
       },
@@ -322,8 +317,7 @@ export const exchangeCodeForToken = async (
   }
 
   const appTokens = generateToken(user);
-  const expiryString = config.jwtRefreshExpiresIn as StringValue;
-  const redisExpirySeconds = ms(expiryString) / 1000;
+  const redisExpirySeconds = getRedisExpirySeconds(config.jwtRefreshExpiresIn);
 
   await redisAuthRepository.storeRefreshTokenId(
     user.id,
@@ -340,24 +334,29 @@ export const exchangeCodeForToken = async (
 };
 
 export const validateToken = async (accessToken: string) => {
-  const decoded = jwt.verify(accessToken, config.jwtSecret) as JwtPayload;
+  try {
+    const decoded = jwt.verify(accessToken, config.jwtSecret) as JwtPayload;
 
-  if (decoded.jwtId) {
-    const isBlacklisted = await redisAuthRepository.isTokenBlacklisted({
-      jwtId: decoded.jwtId,
-      userId: decoded.userId,
-      exp: decoded.exp || 0,
-    });
+    if (decoded.jwtId) {
+      const isBlacklisted = await redisAuthRepository.isTokenBlacklisted({
+        jwtId: decoded.jwtId,
+        userId: decoded.userId,
+        exp: decoded.exp || 0,
+      });
 
-    if (isBlacklisted) {
-      throw new Error("Token has been revoked");
+      if (isBlacklisted) {
+        throw new HttpError("Token has been revoked", 401);
+      }
     }
+    const returnPayload = {
+      isValid: true,
+      tokenPayload: decoded,
+    };
+    return returnPayload;
+  } catch (error) {
+    console.error("JWT Verification failed in auth_microservice:", error);
+    throw error;
   }
-  const returnPayload = {
-    isValid: true,
-    tokenPayload: decoded,
-  };
-  return returnPayload;
 };
 
 export const handleLogout = async (refreshToken: string) => {

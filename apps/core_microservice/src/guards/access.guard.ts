@@ -1,7 +1,9 @@
 import {
   CanActivate,
   ExecutionContext,
+  HttpException,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { Request } from 'express';
@@ -17,6 +19,8 @@ export interface AuthenticatedRequest extends Request {
 
 @Injectable()
 export class AccessGuard implements CanActivate {
+  private readonly logger = new Logger(AccessGuard.name);
+
   constructor(private readonly authService: AuthService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -24,34 +28,61 @@ export class AccessGuard implements CanActivate {
     const token = this.extractTokenFromRequest(request);
 
     if (!token) {
-      throw new UnauthorizedException();
+      this.logger.warn('No authentication token found in request');
+      throw new UnauthorizedException('Authentication token is missing');
     }
 
     try {
-      const { isValid, tokenPayload } =
-        await this.authService.validateToken(token);
+      const validation = await this.authService.validateToken(token);
 
-      request.user = tokenPayload;
+      if (
+        !validation ||
+        (validation as unknown) === false ||
+        validation.isValid === false
+      ) {
+        throw new UnauthorizedException(
+          'Invalid or expired authentication token',
+        );
+      }
 
-      return isValid;
-    } catch {
-      throw new UnauthorizedException();
+      const payload = (validation?.tokenPayload ||
+        validation) as Partial<AppJwtPayload>;
+
+      if (!payload || !payload.userId) {
+        this.logger.warn(
+          `Invalid token validation response format: ${JSON.stringify(validation)}`,
+        );
+        throw new UnauthorizedException('Invalid token validation response');
+      }
+
+      request.user = payload as AppJwtPayload;
+
+      return true;
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      this.logger.error('Unexpected error during token validation', error);
+      throw new UnauthorizedException(
+        'Invalid or expired authentication token',
+      );
     }
   }
 
   private extractTokenFromRequest(request: Request): string | undefined {
-    const [type, token] = request.headers.authorization?.split(' ') ?? [];
-
-    if (type === 'Bearer' && token) {
-      return token;
-    }
-
     const cookies = request.cookies as Record<string, unknown> | undefined;
 
     const cookieToken = cookies?.['accessToken'];
 
-    if (typeof cookieToken === 'string') {
+    if (typeof cookieToken === 'string' && cookieToken !== 'undefined') {
       return cookieToken;
+    }
+
+    const [type, token] = request.headers.authorization?.split(' ') ?? [];
+
+    if (type === 'Bearer' && token && token !== 'undefined') {
+      return token;
     }
 
     return undefined;

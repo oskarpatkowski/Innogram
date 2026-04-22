@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
   IsBoolean,
   IsDate,
@@ -26,6 +27,7 @@ export class CreateProfileDto {
   @ApiProperty()
   displayName!: string;
 
+  @Type(() => Date)
   @IsDate({ message: 'birthday must be a valid date' })
   @IsNotEmpty({ message: 'birthday is required' })
   @ApiProperty()

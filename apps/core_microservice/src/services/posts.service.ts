@@ -46,7 +46,7 @@ export class PostsService {
     return post;
   }
 
-  async getProfilePosts(profileId: string, take: number, lastCursor: string) {
+  async getProfilePosts(profileId: string, take: number, lastCursor?: string) {
     const result = await this.prisma.post.findMany({
       take: take + 1,
       ...(lastCursor && {
@@ -109,7 +109,7 @@ export class PostsService {
     return post;
   }
 
-  async getAll(take: number, lastCursor: string) {
+  async getAll(take: number, lastCursor?: string) {
     const result = await this.prisma.post.findMany({
       take: take + 1,
       ...(lastCursor && {
@@ -198,7 +198,7 @@ export class PostsService {
     return linked;
   }
 
-  async getFeed(profileId: string, take: number, lastCursor: string) {
+  async getFeed(profileId: string, take: number, lastCursor?: string) {
     const follows = await this.prisma.profileFollow.findMany({
       where: {
         followerProfileId: profileId,
@@ -261,7 +261,7 @@ export class PostsService {
     };
   }
 
-  async search(query: string, take: number, lastCursor: string) {
+  async search(query: string, take: number, lastCursor?: string) {
     const result = await this.prisma.post.findMany({
       take: take + 1,
       ...(lastCursor && {

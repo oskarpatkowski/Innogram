@@ -13,6 +13,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { ApiQuery } from '@nestjs/swagger';
 import { CreatePostDto } from '../../dto/create.post.dto';
 import { UpdatePostDto } from '../../dto/update.post.dto';
 import type { AuthenticatedRequest } from '../guards/access.guard';
@@ -35,11 +36,16 @@ export class PostsController {
     return await this.postsService.create(postDto, userId, profileId);
   }
 
+  @ApiQuery({
+    name: 'lastCursor',
+    required: false,
+    type: String,
+  })
   @Get('/my')
   async getCurrentUserPosts(
     @Req() request: AuthenticatedRequest,
     @Query('take', new DefaultValuePipe(10), ParseIntPipe) take: number,
-    @Query('lastCursor') lastCursor: string,
+    @Query('lastCursor') lastCursor?: string,
   ) {
     return await this.postsService.getProfilePosts(
       request.user.profileId,
@@ -48,20 +54,30 @@ export class PostsController {
     );
   }
 
+  @ApiQuery({
+    name: 'lastCursor',
+    required: false,
+    type: String,
+  })
   @Get('/profile/:profileId')
   async getPostsByProfile(
     @Param('profileId') profileId: string,
     @Query('take', new DefaultValuePipe(10), ParseIntPipe) take: number,
-    @Query('lastCursor') lastCursor: string,
+    @Query('lastCursor') lastCursor?: string,
   ) {
     return await this.postsService.getProfilePosts(profileId, take, lastCursor);
   }
 
+  @ApiQuery({
+    name: 'lastCursor',
+    required: false,
+    type: String,
+  })
   @Get('/feed')
   async getFeed(
     @Req() request: AuthenticatedRequest,
     @Query('take', new DefaultValuePipe(10), ParseIntPipe) take: number,
-    @Query('lastCursor') lastCursor: string,
+    @Query('lastCursor') lastCursor?: string,
   ) {
     return await this.postsService.getFeed(
       request.user.profileId,
@@ -70,11 +86,16 @@ export class PostsController {
     );
   }
 
+  @ApiQuery({
+    name: 'lastCursor',
+    required: false,
+    type: String,
+  })
   @Get('/search/:query')
   async getSearchResults(
     @Param('query') query: string,
     @Query('take', new DefaultValuePipe(10), ParseIntPipe) take: number,
-    @Query('lastCursor') lastCursor: string,
+    @Query('lastCursor') lastCursor?: string,
   ) {
     return await this.postsService.search(query, take, lastCursor);
   }
@@ -84,10 +105,15 @@ export class PostsController {
     return await this.postsService.getById(id);
   }
 
+  @ApiQuery({
+    name: 'lastCursor',
+    required: false,
+    type: String,
+  })
   @Get()
   async getAll(
     @Query('take', new DefaultValuePipe(10), ParseIntPipe) take: number,
-    @Query('lastCursor') lastCursor: string,
+    @Query('lastCursor') lastCursor?: string,
   ) {
     return await this.postsService.getAll(take, lastCursor);
   }

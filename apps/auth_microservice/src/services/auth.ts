@@ -42,7 +42,7 @@ const normalizeExpiry = (expiry?: string | number) => {
   return expiry;
 };
 
-const generateToken = (user: User) => {
+const generateToken = (user: User & { profile?: { id: string } | null }) => {
   const accessSignOptions: SignOptions = {};
 
   if (config.jwtExpiresIn) {
@@ -55,6 +55,7 @@ const generateToken = (user: User) => {
   const accessToken = jwt.sign(
     {
       userId: user.id,
+      profileId: user.profile?.id,
       role: user.role,
     },
     config.jwtSecret,
@@ -73,6 +74,7 @@ const generateToken = (user: User) => {
   const refreshToken = jwt.sign(
     {
       userId: user.id,
+      profileId: user.profile?.id,
       role: user.role,
       jwtId: refreshTokenId,
     },
@@ -183,6 +185,7 @@ export const authenticateUser = async (loginDto: LoginDto) => {
 
   const user = await prismaClient.user.findUnique({
     where: { id: account.userId },
+    include: { profile: true },
   });
   if (!user) {
     throw new HttpError("User record missing", 404);
@@ -225,6 +228,7 @@ export const processRefreshtoken = async (
     where: { id: decoded.userId },
     include: {
       account: true,
+      profile: true,
     },
   });
   if (!user) {
@@ -315,18 +319,24 @@ export const exchangeCodeForToken = async (
           },
           include: {
             account: true,
+            profile: true,
           },
         });
       },
     );
     account = user.account;
   } else {
-    user = (await prismaClient.user.findUnique({
+    user = await prismaClient.user.findUnique({
       where: { id: account.userId },
       include: {
         account: true,
+        profile: true,
       },
-    })) as User;
+    });
+  }
+
+  if (!user) {
+    throw new HttpError("User record missing", 404);
   }
 
   const appTokens = generateToken(user);

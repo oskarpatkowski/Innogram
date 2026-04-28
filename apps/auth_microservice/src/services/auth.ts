@@ -152,6 +152,7 @@ export const registerUser = async (registerUserDto: SignupDto) => {
   const tokens = generateToken(user);
   await redisAuthRepository.storeRefreshTokenId(
     user.id,
+    user.account?.id || "",
     tokens.refreshTokenId,
     registerUserDto.ipAddress,
     registerUserDto.userAgent,
@@ -192,6 +193,7 @@ export const authenticateUser = async (loginDto: LoginDto) => {
   const redisExpirySeconds = getRedisExpirySeconds(config.jwtRefreshExpiresIn);
   await redisAuthRepository.storeRefreshTokenId(
     account.userId,
+    account.id,
     tokens.refreshTokenId,
     loginDto.ipAddress,
     loginDto.userAgent,
@@ -221,6 +223,9 @@ export const processRefreshtoken = async (
   }
   const user = await prismaClient.user.findUnique({
     where: { id: decoded.userId },
+    include: {
+      account: true,
+    },
   });
   if (!user) {
     throw new HttpError("User not found", 404);
@@ -238,6 +243,7 @@ export const processRefreshtoken = async (
   const redisExpirySeconds = getRedisExpirySeconds(config.jwtRefreshExpiresIn);
   await redisAuthRepository.storeRefreshTokenId(
     user.id,
+    user.account?.id || "",
     tokens.refreshTokenId,
     ipAddress,
     userAgent,
@@ -269,11 +275,11 @@ export const exchangeCodeForToken = async (
     throw new HttpError("Invalid Google ID token payload", 401);
   }
 
-  const account = await prismaClient.account.findUnique({
+  let account = await prismaClient.account.findUnique({
     where: { email: payload.email },
   });
 
-  let user: User;
+  let user;
   if (!account) {
     const baseUsername =
       payload.name?.replace(/\s+/g, "").toLowerCase() ||
@@ -307,12 +313,19 @@ export const exchangeCodeForToken = async (
               },
             },
           },
+          include: {
+            account: true,
+          },
         });
       },
     );
+    account = user.account;
   } else {
     user = (await prismaClient.user.findUnique({
       where: { id: account.userId },
+      include: {
+        account: true,
+      },
     })) as User;
   }
 
@@ -321,6 +334,7 @@ export const exchangeCodeForToken = async (
 
   await redisAuthRepository.storeRefreshTokenId(
     user.id,
+    account?.id || "",
     appTokens.refreshTokenId,
     ipAddress,
     userAgent,

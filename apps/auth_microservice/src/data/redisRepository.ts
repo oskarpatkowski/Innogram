@@ -8,6 +8,7 @@ export interface JwtPayload {
 
 export interface RefreshTokenSession {
   userId: string;
+  accountId: string;
   ipAddress: string;
   userAgent: string;
   createdAt: string;
@@ -32,6 +33,7 @@ export class RedisAuthRepository {
 
   storeRefreshTokenId = async (
     userId: string,
+    accountId: string,
     refreshTokenId: string,
     ipAddress: string,
     userAgent: string,
@@ -41,6 +43,7 @@ export class RedisAuthRepository {
 
     const sessionData: RefreshTokenSession = {
       userId,
+      accountId,
       ipAddress,
       userAgent,
       createdAt: new Date().toISOString(),

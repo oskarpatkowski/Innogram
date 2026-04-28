@@ -1,17 +1,33 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Req } from '@nestjs/common';
 import { CreatePostDto } from '../../dto/create.post.dto';
 import { UpdatePostDto } from '../../dto/update.post.dto';
+import type { AuthenticatedRequest } from '../guards/access.guard';
 import { PrismaService } from '../services/prisma.service';
 
 @Injectable()
 export class PostsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(dto: CreatePostDto) {
+  async create(dto: CreatePostDto, userId: string, profileId: string) {
     const post = await this.prisma.post.create({
-      data: dto,
+      data: {
+        ...dto,
+        createdById: userId,
+        profileId: profileId,
+      },
     });
     Logger.log(`Post ${post.id} created`, 'PostsService');
+
+    if (dto.assetIds) {
+      for (const assetId of dto.assetIds) {
+        await this.linkAssetToPost(assetId, post.id, userId);
+        Logger.log(
+          `Linked asset ${assetId} to post ${post.id} by user ${userId}`,
+          'PostsService',
+        );
+      }
+    }
+
     return post;
   }
 
@@ -27,6 +43,36 @@ export class PostsService {
     } else {
       Logger.log(`Post ${id} not found`, 'PostsService');
     }
+
+    return post;
+  }
+
+  async getProfilePosts(profileId: string) {
+    const posts = await this.prisma.post.findMany({
+      where: {
+        profileId: profileId,
+      },
+    });
+
+    Logger.log(
+      `Found ${posts.length} posts for profile ${profileId}`,
+      'PostsService',
+    );
+
+    return posts;
+  }
+
+  async setPostAsArchived(id: string) {
+    const post = await this.prisma.post.update({
+      where: {
+        id,
+      },
+      data: {
+        isArchived: true,
+      },
+    });
+
+    Logger.log(`Post ${post.id} archived`, 'PostsService');
 
     return post;
   }
@@ -70,5 +116,49 @@ export class PostsService {
     }
 
     return post;
+  }
+
+  async linkAssetToPost(assetId: string, postId: string, userId: string) {
+    Logger.log(
+      `Linking asset ${assetId} to post ${postId} by user ${userId}`,
+      'AssetsService',
+    );
+
+    const linked = await this.prisma.postAsset.create({
+      data: {
+        assetId: assetId,
+        postId: postId,
+        createdById: userId,
+      },
+    });
+
+    return linked;
+  }
+
+  async getFeed(@Req() request: AuthenticatedRequest) {
+    const follows = await this.prisma.profileFollow.findMany({
+      where: {
+        followerProfileId: request.user.profileId,
+      },
+      select: {
+        followingProfileId: true,
+      },
+    });
+    const followingProfileIds = follows.map(
+      (follow) => follow.followingProfileId,
+    );
+
+    const posts = await this.prisma.post.findMany({
+      where: {
+        profileId: {
+          in: followingProfileIds,
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return posts;
   }
 }

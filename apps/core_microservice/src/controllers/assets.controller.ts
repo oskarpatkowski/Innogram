@@ -1,16 +1,20 @@
 import {
-  Body,
   Controller,
   Delete,
   Get,
   Param,
   Post,
   Put,
+  Req,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
-import { AssetsService } from '../services/assetes.service';
-import { CreateAssetDto } from '../../dto/create.asset.dto';
+import 'multer';
+import type { AuthenticatedRequest } from '../guards/access.guard';
 import { AccessGuard } from '../guards/access.guard';
+import { FileUploadInterceptor } from '../interceptors/assets.interceptor';
+import { AssetsService } from '../services/assetes.service';
 
 @Controller('assets')
 @UseGuards(AccessGuard)
@@ -18,7 +22,19 @@ export class AssetsController {
   constructor(private readonly assetsService: AssetsService) {}
 
   @Post()
-  async create(@Body() assetDto: CreateAssetDto) {
+  @UseInterceptors(FileUploadInterceptor)
+  async create(
+    @UploadedFile()
+    file: Express.Multer.File,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    const assetDto = {
+      fileName: file.originalname,
+      fileType: file.mimetype,
+      fileSize: file.size,
+      filePath: `/uploads/${file.filename}`,
+      createdById: request.user.userId,
+    };
     return await this.assetsService.create(assetDto);
   }
 
@@ -32,8 +48,26 @@ export class AssetsController {
     return await this.assetsService.getAll();
   }
 
+  @Get('/post/:postId')
+  async getByPostId(@Param('postId') postId: string) {
+    return await this.assetsService.getByPostId(postId);
+  }
+
   @Put(':id')
-  async update(@Param('id') id: string, @Body() assetDto: CreateAssetDto) {
+  @UseInterceptors(FileUploadInterceptor)
+  async update(
+    @Param('id') id: string,
+    @UploadedFile()
+    file: Express.Multer.File,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    const assetDto = {
+      fileName: file.originalname,
+      fileType: file.mimetype,
+      fileSize: file.size,
+      filePath: `/uploads/${file.filename}`,
+      createdById: request.user.userId,
+    };
     return await this.assetsService.update(id, assetDto);
   }
 

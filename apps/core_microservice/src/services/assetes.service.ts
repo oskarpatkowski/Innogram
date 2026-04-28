@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import fs from 'fs/promises';
 import { CreateAssetDto } from '../../dto/create.asset.dto';
 import { UpdateAssetDto } from '../../dto/update.asset.dto';
 import { PrismaService } from './prisma.service';
@@ -69,6 +70,32 @@ export class AssetsService {
       Logger.log(`Asset ${id} not found`, 'AssetsService');
     }
 
+    try {
+      await fs.unlink(asset.filePath);
+    } catch {
+      throw Error(`failed to remove file ${asset.filePath}`);
+    }
+
     return asset;
+  }
+
+  async getByPostId(postId: string) {
+    const post = await this.prisma.post.findUnique({
+      where: {
+        id: postId,
+      },
+    });
+
+    if (!post) {
+      throw Error('Post not found');
+    }
+
+    const assets = await this.prisma.postAsset.findMany({
+      where: {
+        postId: postId,
+      },
+    });
+
+    return assets;
   }
 }

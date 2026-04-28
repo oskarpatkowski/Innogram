@@ -18,6 +18,7 @@ interface InternalSignupDto {
 
 export interface AppJwtPayload {
   userId: string;
+  profileId: string;
   role: string;
   jwtId?: string;
   iat?: number;

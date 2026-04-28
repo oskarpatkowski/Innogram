@@ -1,12 +1,15 @@
 import {
   Body,
   Controller,
+  DefaultValuePipe,
   Delete,
   Get,
   Param,
+  ParseIntPipe,
   Patch,
   Post,
   Put,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -32,24 +35,61 @@ export class PostsController {
     return await this.postsService.create(postDto, userId, profileId);
   }
 
+  @Get('/my')
+  async getCurrentUserPosts(
+    @Req() request: AuthenticatedRequest,
+    @Query('take', new DefaultValuePipe(10), ParseIntPipe) take: number,
+    @Query('lastCursor') lastCursor: string,
+  ) {
+    return await this.postsService.getProfilePosts(
+      request.user.profileId,
+      take,
+      lastCursor,
+    );
+  }
+
+  @Get('/profile/:profileId')
+  async getPostsByProfile(
+    @Param('profileId') profileId: string,
+    @Query('take', new DefaultValuePipe(10), ParseIntPipe) take: number,
+    @Query('lastCursor') lastCursor: string,
+  ) {
+    return await this.postsService.getProfilePosts(profileId, take, lastCursor);
+  }
+
+  @Get('/feed')
+  async getFeed(
+    @Req() request: AuthenticatedRequest,
+    @Query('take', new DefaultValuePipe(10), ParseIntPipe) take: number,
+    @Query('lastCursor') lastCursor: string,
+  ) {
+    return await this.postsService.getFeed(
+      request.user.profileId,
+      take,
+      lastCursor,
+    );
+  }
+
+  @Get('/search/:query')
+  async getSearchResults(
+    @Param('query') query: string,
+    @Query('take', new DefaultValuePipe(10), ParseIntPipe) take: number,
+    @Query('lastCursor') lastCursor: string,
+  ) {
+    return await this.postsService.search(query, take, lastCursor);
+  }
+
   @Get(':id')
   async getById(@Param('id') id: string) {
     return await this.postsService.getById(id);
   }
 
-  @Get('/my')
-  async getCurrentUserPosts(@Req() request: AuthenticatedRequest) {
-    return await this.postsService.getProfilePosts(request.user.profileId);
-  }
-
-  @Get('/profile/:profileId')
-  async getPostsByProfile(@Param('profileId') profileId: string) {
-    return await this.postsService.getProfilePosts(profileId);
-  }
-
   @Get()
-  async getAll() {
-    return await this.postsService.getAll();
+  async getAll(
+    @Query('take', new DefaultValuePipe(10), ParseIntPipe) take: number,
+    @Query('lastCursor') lastCursor: string,
+  ) {
+    return await this.postsService.getAll(take, lastCursor);
   }
 
   @Put(':id')

@@ -1,7 +1,6 @@
-import { Injectable, Logger, Req } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { CreatePostDto } from '../../dto/create.post.dto';
 import { UpdatePostDto } from '../../dto/update.post.dto';
-import type { AuthenticatedRequest } from '../guards/access.guard';
 import { PrismaService } from '../services/prisma.service';
 
 @Injectable()
@@ -47,19 +46,52 @@ export class PostsService {
     return post;
   }
 
-  async getProfilePosts(profileId: string) {
-    const posts = await this.prisma.post.findMany({
+  async getProfilePosts(profileId: string, take: number, lastCursor: string) {
+    const result = await this.prisma.post.findMany({
+      take: take + 1,
+      ...(lastCursor && {
+        skip: 1,
+        cursor: {
+          id: lastCursor,
+        },
+      }),
       where: {
         profileId: profileId,
       },
+      orderBy: {
+        createdAt: 'desc',
+      },
     });
 
-    Logger.log(
-      `Found ${posts.length} posts for profile ${profileId}`,
-      'PostsService',
-    );
+    if (result.length == 0) {
+      return {
+        data: [],
+        metaData: {
+          hasNextPage: false,
+          lastCursor: null,
+        },
+      };
+    }
 
-    return posts;
+    const hasNextPage = result.length > take;
+    if (hasNextPage) {
+      result.pop();
+    }
+
+    const lastPostInResults = result[result.length - 1];
+    const cursor = lastPostInResults.id;
+
+    const data = {
+      data: result,
+      metaData: {
+        hasNextPage,
+        lastCursor: cursor,
+      },
+    };
+
+    Logger.log(`fetching posts for profile ${profileId}`, 'PostsService');
+
+    return data;
   }
 
   async setPostAsArchived(id: string) {
@@ -77,16 +109,47 @@ export class PostsService {
     return post;
   }
 
-  async getAll() {
-    const posts = await this.prisma.post.findMany();
+  async getAll(take: number, lastCursor: string) {
+    const result = await this.prisma.post.findMany({
+      take: take + 1,
+      ...(lastCursor && {
+        skip: 1,
+        cursor: {
+          id: lastCursor,
+        },
+      }),
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
 
-    if (posts.length > 0) {
-      Logger.log(`Found ${posts.length} posts`, 'PostsService');
-    } else {
-      Logger.log(`No posts found`, 'PostsService');
+    if (result.length == 0) {
+      return {
+        data: [],
+        metaData: {
+          hasNextPage: false,
+          lastCursor: null,
+        },
+      };
     }
 
-    return posts;
+    const hasNextPage = result.length > take;
+    if (hasNextPage) {
+      result.pop();
+    }
+
+    const lastPostInResults = result[result.length - 1];
+    const cursor = lastPostInResults.id;
+
+    Logger.log(`Found ${result.length} posts`, 'PostsService');
+
+    return {
+      data: result,
+      metaData: {
+        hasNextPage,
+        lastCursor: cursor,
+      },
+    };
   }
 
   async update(id: string, postDto: UpdatePostDto) {
@@ -135,10 +198,10 @@ export class PostsService {
     return linked;
   }
 
-  async getFeed(@Req() request: AuthenticatedRequest) {
+  async getFeed(profileId: string, take: number, lastCursor: string) {
     const follows = await this.prisma.profileFollow.findMany({
       where: {
-        followerProfileId: request.user.profileId,
+        followerProfileId: profileId,
       },
       select: {
         followingProfileId: true,
@@ -148,7 +211,14 @@ export class PostsService {
       (follow) => follow.followingProfileId,
     );
 
-    const posts = await this.prisma.post.findMany({
+    const result = await this.prisma.post.findMany({
+      take: take + 1,
+      ...(lastCursor && {
+        skip: 1,
+        cursor: {
+          id: lastCursor,
+        },
+      }),
       where: {
         profileId: {
           in: followingProfileIds,
@@ -159,6 +229,86 @@ export class PostsService {
       },
     });
 
-    return posts;
+    if (result.length == 0) {
+      return {
+        data: [],
+        metaData: {
+          hasNextPage: false,
+          lastCursor: null,
+        },
+      };
+    }
+
+    const hasNextPage = result.length > take;
+    if (hasNextPage) {
+      result.pop();
+    }
+
+    const lastPostInResults = result[result.length - 1];
+    const cursor = lastPostInResults.id;
+
+    Logger.log(
+      `Found ${result.length} feed posts for profile ${profileId}`,
+      'PostsService',
+    );
+
+    return {
+      data: result,
+      metaData: {
+        hasNextPage,
+        lastCursor: cursor,
+      },
+    };
+  }
+
+  async search(query: string, take: number, lastCursor: string) {
+    const result = await this.prisma.post.findMany({
+      take: take + 1,
+      ...(lastCursor && {
+        skip: 1,
+        cursor: {
+          id: lastCursor,
+        },
+      }),
+      orderBy: {
+        createdAt: 'desc',
+      },
+      where: {
+        content: {
+          contains: query,
+        },
+      },
+    });
+
+    if (result.length == 0) {
+      return {
+        data: [],
+        metaData: {
+          hasNextPage: false,
+          lastCursor: null,
+        },
+      };
+    }
+
+    const hasNextPage = result.length > take;
+    if (hasNextPage) {
+      result.pop();
+    }
+
+    const lastPostInResults = result[result.length - 1];
+    const cursor = lastPostInResults.id;
+
+    Logger.log(
+      `Found ${result.length} search results for query ${query}`,
+      'PostsService',
+    );
+
+    return {
+      data: result,
+      metaData: {
+        hasNextPage,
+        lastCursor: cursor,
+      },
+    };
   }
 }

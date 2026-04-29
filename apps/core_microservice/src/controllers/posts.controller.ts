@@ -118,6 +118,11 @@ export class PostsController {
     return await this.postsService.getAll(take, lastCursor);
   }
 
+  @Patch('archive/:id')
+  async patch(@Param('id') id: string) {
+    return await this.postsService.setPostAsArchived(id);
+  }
+
   @Put(':id')
   async update(
     @Param('id') id: string,
@@ -135,11 +140,6 @@ export class PostsController {
     }
 
     return await this.postsService.update(id, postDto);
-  }
-
-  @Patch(':id')
-  async patch(@Param('id') id: string) {
-    return await this.postsService.setPostAsArchived(id);
   }
 
   @Delete(':id')

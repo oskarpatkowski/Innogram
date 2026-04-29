@@ -10,11 +10,17 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import { ApiBody, ApiConsumes, ApiProperty } from '@nestjs/swagger';
 import 'multer';
 import type { AuthenticatedRequest } from '../guards/access.guard';
 import { AccessGuard } from '../guards/access.guard';
 import { FileUploadInterceptor } from '../interceptors/assets.interceptor';
 import { AssetsService } from '../services/assetes.service';
+
+export class FileUploadDto {
+  @ApiProperty({ type: 'string', format: 'binary', required: true })
+  file!: any; //any recomended in nest js docs
+}
 
 @Controller('assets')
 @UseGuards(AccessGuard)
@@ -23,9 +29,10 @@ export class AssetsController {
 
   @Post()
   @UseInterceptors(FileUploadInterceptor)
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({ type: FileUploadDto })
   async create(
-    @UploadedFile()
-    file: Express.Multer.File,
+    @UploadedFile() file: Express.Multer.File,
     @Req() request: AuthenticatedRequest,
   ) {
     const assetDto = {
@@ -55,10 +62,11 @@ export class AssetsController {
 
   @Put(':id')
   @UseInterceptors(FileUploadInterceptor)
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({ type: FileUploadDto })
   async update(
     @Param('id') id: string,
-    @UploadedFile()
-    file: Express.Multer.File,
+    @UploadedFile() file: Express.Multer.File,
     @Req() request: AuthenticatedRequest,
   ) {
     const assetDto = {

@@ -1,0 +1,14 @@
+
+
+> @innogram/database@1.0.0 generate
+> prisma generate
+
+[2mPrisma schema loaded from prisma/schema.prisma.[22m
+
+
+✔ Generated [1mPrisma Client[22m (v7.7.0)[2m to ./../../node_modules/@prisma/client[22m in 199ms
+
+Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
+
+
+⠙[1G[0K

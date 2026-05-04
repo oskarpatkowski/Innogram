@@ -6,11 +6,14 @@ import {
   Param,
   Post,
   Put,
+  UseGuards,
 } from '@nestjs/common';
 import { AssetsService } from '../services/assetes.service';
 import { CreateAssetDto } from '../../dto/create.asset.dto';
+import { AccessGuard } from '../guards/access.guard';
 
 @Controller('assets')
+@UseGuards(AccessGuard)
 export class AssetsController {
   constructor(private readonly assetsService: AssetsService) {}
 

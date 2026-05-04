@@ -1,5 +1,5 @@
-import { NotificationType } from '@prisma/client';
-import { JsonObject } from '@prisma/client/runtime/client';
+import { NotificationType } from '@innogram/database';
+import { ApiProperty } from '@nestjs/swagger';
 import {
   IsEnum,
   IsJSON,
@@ -9,22 +9,27 @@ import {
 } from 'class-validator';
 
 export class CreateNotificationDto {
-  @IsEnum(NotificationType)
+  @IsEnum(NotificationType, { message: 'type must be a valid type' })
+  @ApiProperty()
   type!: NotificationType;
 
-  @IsString()
-  @IsNotEmpty()
+  @IsString({ message: 'title must be a string' })
+  @IsNotEmpty({ message: 'title is required' })
   @MaxLength(255)
+  @ApiProperty()
   title!: string;
 
-  @IsString()
-  @IsNotEmpty()
+  @IsString({ message: 'message must be a string' })
+  @IsNotEmpty({ message: 'message is required' })
+  @ApiProperty()
   message!: string;
 
-  @IsJSON()
+  @IsJSON({ message: 'data must be a valid JSON' })
+  @ApiProperty()
   data!: string;
 
-  @IsString()
-  @IsNotEmpty()
+  @IsString({ message: 'createdById must be a string' })
+  @IsNotEmpty({ message: 'createdById is required' })
+  @ApiProperty()
   createdById!: string;
 }

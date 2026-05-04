@@ -6,11 +6,14 @@ import {
   Param,
   Post,
   Put,
+  UseGuards,
 } from '@nestjs/common';
 import { CommentsService } from '../services/comments.service';
 import { CreateCommentDto } from '../../dto/create.comment.dto';
+import { AccessGuard } from '../guards/access.guard';
 
 @Controller('comments')
+@UseGuards(AccessGuard)
 export class CommentsController {
   constructor(private readonly commentsService: CommentsService) {}
 

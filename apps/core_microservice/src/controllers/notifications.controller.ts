@@ -1,17 +1,20 @@
 import {
-  Controller,
-  Post,
   Body,
-  Param,
-  Get,
-  Put,
+  Controller,
   Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+  UseGuards,
 } from '@nestjs/common';
-import { NotificationsService } from '../services/notification.service';
 import { CreateNotificationDto } from '../../dto/create.notification.dto';
 import { UpdateNotificationDto } from '../../dto/update.notification.dto';
+import { AccessGuard } from '../guards/access.guard';
+import { NotificationsService } from '../services/notification.service';
 
 @Controller('notifications')
+@UseGuards(AccessGuard)
 export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
 

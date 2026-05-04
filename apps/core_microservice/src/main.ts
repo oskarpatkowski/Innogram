@@ -1,10 +1,17 @@
-import { NestFactory, HttpAdapterHost } from '@nestjs/core';
-import { ConsoleLogger, Logger, ValidationPipe } from '@nestjs/common';
-import { AppModule } from './app.module';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import { HttpExceptionFilter } from './filters/exception.filter';
+import {
+  BadRequestException,
+  ConsoleLogger,
+  Logger,
+  ValidationError,
+  ValidationPipe,
+} from '@nestjs/common';
+import { HttpAdapterHost, NestFactory } from '@nestjs/core';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { PrismaClientExceptionFilter } from 'nestjs-prisma';
+import { AppModule } from './app.module';
+import { HttpExceptionFilter } from './filters/exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -15,12 +22,15 @@ async function bootstrap() {
   });
 
   app.use(helmet());
+  app.use(cookieParser());
 
   const config = new DocumentBuilder()
     .setTitle('Innogram core microservice')
     .setDescription('The Innogram core microservice API')
     .setVersion('0.1')
     .addTag('core')
+    .addBearerAuth()
+    .addCookieAuth('accessToken')
     .build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, documentFactory);
@@ -30,6 +40,12 @@ async function bootstrap() {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+      exceptionFactory: (validationErrors: ValidationError[] = []) => {
+        const messages = validationErrors.flatMap((error) =>
+          Object.values(error.constraints || {}),
+        );
+        return new BadRequestException(messages);
+      },
     }),
   );
 

@@ -1,14 +1,15 @@
 import { Module } from '@nestjs/common';
-import { UsersService } from '../services/users.service';
-import { PrismaService } from '../services/prisma.service';
 import { ConfigService } from '@nestjs/config';
-import { AccountService } from '../services/account.service';
-import { UsersController } from '../controllers/users.controller';
 import { AccountController } from '../controllers/account.controller';
-import { ProfileController } from '../controllers/profile.controller';
-import { ProfileService } from '../services/profile.service';
-import { ProfileConfigService } from '../services/profile.config.service';
 import { ProfileConfigController } from '../controllers/profile.config.contoller';
+import { ProfileController } from '../controllers/profile.controller';
+import { UsersController } from '../controllers/users.controller';
+import { AccountService } from '../services/account.service';
+import { AuthService } from '../services/auth.service';
+import { PrismaService } from '../services/prisma.service';
+import { ProfileConfigService } from '../services/profile.config.service';
+import { ProfileService } from '../services/profile.service';
+import { UsersService } from '../services/users.service';
 
 @Module({
   imports: [],
@@ -25,6 +26,7 @@ import { ProfileConfigController } from '../controllers/profile.config.contoller
     AccountService,
     ProfileService,
     ProfileConfigService,
+    AuthService,
   ],
 })
 export class UsersModule {}

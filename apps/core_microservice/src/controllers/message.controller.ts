@@ -6,12 +6,15 @@ import {
   Param,
   Put,
   Delete,
+  UseGuards,
 } from '@nestjs/common';
 import { MessageService } from '../services/message.service';
 import { UpdateChatMessageDto } from '../../dto/update.message.dto';
 import { CreateChatMessageDto } from '../../dto/create.message.dto';
+import { AccessGuard } from '../guards/access.guard';
 
 @Controller('messages')
+@UseGuards(AccessGuard)
 export class MessageControler {
   constructor(private readonly messageService: MessageService) {}
 

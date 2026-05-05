@@ -103,6 +103,19 @@ export class ProfileService {
       },
     });
 
+    const notification = await this.prisma.notification.create({
+      data: {
+        type: 'FOLLOW',
+        title: 'New Follower',
+        message: `${followerUser.username} started following you.`,
+        data: JSON.stringify({ profileId: followingProfileId }),
+        createdById: followerUser.id,
+        recipientId: followedProfile.id,
+      },
+    });
+
+    Logger.log(`Notification ${notification.id} created`);
+
     Logger.log(
       `Profile ${followingProfileId} followed by profile ${followerProfileId}`,
       'ProfileService',
@@ -155,6 +168,18 @@ export class ProfileService {
     });
 
     Logger.log(`Profile follow ${profileFollowId} set to not accepted`);
+
+    return follow;
+  }
+
+  async rejectFollow(profileFollowId: string) {
+    const follow = await this.prisma.profileFollow.delete({
+      where: {
+        id: profileFollowId,
+      },
+    });
+
+    Logger.log(`Profile follow ${profileFollowId} rejected`, 'ProfileService');
 
     return follow;
   }

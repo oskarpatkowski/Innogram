@@ -30,6 +30,7 @@ enum NotificationType {
   FOLLOW
   SUBSCRIPTION
   SYSTEM
+  MENTION
 
   @@schema("notification")
 }
@@ -107,6 +108,12 @@ model User {
   commentLikeCreator CommentLike[] @relation("CommentLikeCreator")
   commentLikeUpdater CommentLike[] @relation("CommentLikeUpdater")
 
+  createdPostMentions PostMention[] @relation("PostMentionCreator")
+  updatedPostMentions PostMention[] @relation("PostMentionUpdater")
+
+  createdCommentMentions CommentMention[] @relation("CommentMentionCreator")
+  updatedCommentMentions CommentMention[] @relation("CommentMentionUpdater")
+
   profileToProfileConfigurationsCreator ProfileToProfileConfiguration[] @relation("ProfileToProfileConfigCreator")
   profileToProfileConfigurationsUpdater ProfileToProfileConfiguration[] @relation("ProfileToProfileConfigUpdater")
 
@@ -178,6 +185,10 @@ model Profile {
   commentLikes CommentLike[]
   profileConfiguratios ProfileToProfileConfiguration[]
 
+  postMentions PostMention[] @relation("PostMentionProfile")
+  commentMentions CommentMention[] @relation("CommentMentionProfile")
+  receivedNotifications Notification[] @relation("NotificationRecipient")
+
   @@map("profiles")
   @@schema("main")
 }
@@ -202,6 +213,7 @@ model Post {
   comments Comment[]
   postAssets PostAsset[]
   postLikes PostLike[] 
+  postMentions PostMention[]
 
   @@map("posts")
   @@schema("main")
@@ -233,6 +245,7 @@ model Comment {
   deleted Boolean @default(false)
 
   commentLikes CommentLike[]
+  commentMentions CommentMention[]
 
   @@map("comments")
   @@schema("main")
@@ -324,6 +337,9 @@ model Notification {
   data Json
   isRead Boolean @default(false) @map("is_read")
   readAt DateTime? @map("read_at")
+
+  recipient Profile @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  recipientId String @map("recipient_id") @db.VarChar(36)
 
   createdAt DateTime @default(now()) @map("created_at")
   createdBy User @relation("NotificationCreator", fields: [createdById], references: [id])
@@ -522,4 +538,46 @@ model ProfileToProfileConfiguration {
   @@schema("main") 
 }
 
+model PostMention {
+  id String @id @default(uuid()) @db.VarChar(36)
+  
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId String @map("post_id") @db.VarChar(36)
 
+  profile Profile @relation("PostMentionProfile", fields: [profileId], references: [id], onDelete: Cascade)
+  profileId String @map("profile_id") @db.VarChar(36)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  createdBy User @relation("PostMentionCreator", fields: [createdById], references: [id])
+  createdById String @map("created_by") @db.VarChar(36)
+
+  updatedAt DateTime @map("updated_at") @updatedAt
+  updatedBy User? @relation("PostMentionUpdater", fields: [updatedById], references: [id])
+  updatedById String? @map("updated_by") @db.VarChar(36)
+
+  @@map("post_mentions")
+  @@schema("main") 
+  @@unique([postId, profileId])
+}
+
+model CommentMention {
+  id String @id @default(uuid()) @db.VarChar(36)
+  
+  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  commentId String @map("comment_id") @db.VarChar(36)
+
+  profile Profile @relation("CommentMentionProfile", fields: [profileId], references: [id], onDelete: Cascade)
+  profileId String @map("profile_id") @db.VarChar(36)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  createdBy User @relation("CommentMentionCreator", fields: [createdById], references: [id])
+  createdById String @map("created_by") @db.VarChar(36)
+
+  updatedAt DateTime @map("updated_at") @updatedAt
+  updatedBy User? @relation("CommentMentionUpdater", fields: [updatedById], references: [id])
+  updatedById String? @map("updated_by") @db.VarChar(36)
+
+  @@map("comment_mentions")
+  @@schema("main") 
+  @@unique([commentId, profileId])
+}

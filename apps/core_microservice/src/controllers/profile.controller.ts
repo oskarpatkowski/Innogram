@@ -93,8 +93,13 @@ export class ProfileController {
     return await this.profileService.acceptFollow(profileFollowId);
   }
 
-  @Patch('/reject/:profileFollowId')
+  @Patch('/ignore/:profileFollowId')
   async rejectFollow(@Param('profileFollowId') profileFollowId: string) {
     return await this.profileService.setAcceptedFalse(profileFollowId);
+  }
+
+  @Delete('/reject/:profileFollowId')
+  async deleteRequest(@Param('profileFollowId') profileFollowId: string) {
+    return await this.profileService.rejectFollow(profileFollowId);
   }
 }

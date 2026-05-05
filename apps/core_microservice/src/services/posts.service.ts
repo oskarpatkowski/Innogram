@@ -17,6 +17,16 @@ export class PostsService {
     });
     Logger.log(`Post ${post.id} created`, 'PostsService');
 
+    this.handleMentions(dto.content, post.id, profileId, userId).catch(
+      (err) => {
+        Logger.error(
+          `Failed to handle mentions for post ${post.id}`,
+          err instanceof Error ? err.message : String(err),
+          'PostsService',
+        );
+      },
+    );
+
     if (dto.assetIds) {
       for (const assetId of dto.assetIds) {
         await this.linkAssetToPost(assetId, post.id, userId);
@@ -28,6 +38,46 @@ export class PostsService {
     }
 
     return post;
+  }
+
+  private async handleMentions(
+    content: string,
+    postId: string,
+    authorProfileId: string,
+    authorUserId: string,
+  ) {
+    const mentionRegex = /@([a-zA-Z0-9_.-]+)/g;
+    const matches = [...content.matchAll(mentionRegex)];
+    const usernames = matches.map((match) => match[1]);
+
+    if (usernames.length === 0) return;
+
+    const uniqueUsernames = [...new Set(usernames)];
+
+    const mentionedProfiles = await this.prisma.profile.findMany({
+      where: {
+        username: { in: uniqueUsernames },
+        id: { not: authorProfileId },
+      },
+    });
+
+    for (const profile of mentionedProfiles) {
+      await this.prisma.notification.create({
+        data: {
+          type: 'MENTION',
+          title: 'New Mention',
+          message: `You were mentioned in a post.`,
+          data: JSON.stringify({ postId, authorProfileId }),
+          createdById: authorUserId,
+          recipientId: profile.id,
+        },
+      });
+    }
+
+    Logger.log(
+      `Handled ${mentionedProfiles.length} mentions for post ${postId}`,
+      'PostsService',
+    );
   }
 
   async getById(id: string) {

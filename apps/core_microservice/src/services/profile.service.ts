@@ -79,16 +79,26 @@ export class ProfileService {
       },
     });
 
+    const followerUser = await this.prisma.profile.findFirst({
+      where: {
+        id: followerProfileId,
+      },
+    });
+
     if (!followedProfile) {
       throw new Error(`Profile ${followingProfileId} not found`);
+    }
+
+    if (!followerUser) {
+      throw new Error(`User for profile ${followerProfileId} not found`);
     }
 
     const follow = await this.prisma.profileFollow.create({
       data: {
         followingProfileId: followingProfileId,
         followerProfileId: followerProfileId,
-        createdById: followerProfileId,
-        updatedById: followerProfileId,
+        createdById: followerUser.id,
+        updatedById: followerUser.id,
         accepted: followedProfile.isPublic,
       },
     });

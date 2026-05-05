@@ -7,10 +7,26 @@ import { PrismaService } from '../services/prisma.service';
 export class CommentsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(dto: CreateCommentDto) {
-    const comment = await this.prisma.comment.create({
-      data: dto,
+  async create(dto: CreateCommentDto, profileId: string) {
+    const user = await this.prisma.profile.findFirst({
+      where: {
+        id: profileId,
+      },
     });
+
+    if (!user) {
+      throw new Error(`User for profile ${profileId} not found`);
+    }
+
+    const comment = await this.prisma.comment.create({
+      data: {
+        ...dto,
+        profileId: profileId,
+        createdById: user.id,
+        updatedById: user.id,
+      },
+    });
+
     Logger.log(`Comment ${comment.id} created`, 'CommentsService');
     return comment;
   }
@@ -70,5 +86,51 @@ export class CommentsService {
     }
 
     return comment;
+  }
+
+  async like(commentId: string, profileId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: {
+        id: profileId,
+      },
+    });
+
+    if (!user) {
+      throw new Error(`User for profile ${profileId} not found`);
+    }
+
+    const commentLike = await this.prisma.commentLike.create({
+      data: {
+        commentId: commentId,
+        profileId: profileId,
+        createdById: user.id,
+        updatedById: user.id,
+      },
+    });
+
+    Logger.log(
+      `Comment ${commentId} liked by profile ${profileId}`,
+      'CommentsService',
+    );
+
+    return commentLike;
+  }
+
+  async unlike(commentId: string, profileId: string) {
+    const like = await this.prisma.commentLike.delete({
+      where: {
+        commentId_profileId: {
+          commentId: commentId,
+          profileId: profileId,
+        },
+      },
+    });
+
+    Logger.log(
+      `Comment ${commentId} unliked by profile ${profileId}`,
+      'CommentsService',
+    );
+
+    return like;
   }
 }

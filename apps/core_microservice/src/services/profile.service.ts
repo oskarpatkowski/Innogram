@@ -212,4 +212,32 @@ export class ProfileService {
 
     return following;
   }
+
+  async changeVisibility(profileId: string) {
+    const profile = await this.prisma.profile.findFirst({
+      where: {
+        id: profileId,
+      },
+    });
+
+    if (!profile) {
+      throw new Error(`Profile ${profileId} not found`);
+    }
+
+    const updatedProfile = await this.prisma.profile.update({
+      where: {
+        id: profileId,
+      },
+      data: {
+        isPublic: !profile.isPublic,
+      },
+    });
+
+    Logger.log(
+      `Profile ${profileId} visibility changed to ${updatedProfile.isPublic}`,
+      'ProfileService',
+    );
+
+    return updatedProfile;
+  }
 }

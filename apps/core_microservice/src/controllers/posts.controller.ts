@@ -142,6 +142,16 @@ export class PostsController {
     return await this.postsService.update(id, postDto);
   }
 
+  @Post(':id/like')
+  async like(@Req() request: AuthenticatedRequest, @Param('id') id: string) {
+    return await this.postsService.like(id, request.user.profileId);
+  }
+
+  @Delete(':id/like')
+  async unlike(@Req() request: AuthenticatedRequest, @Param('id') id: string) {
+    return await this.postsService.unlike(id, request.user.profileId);
+  }
+
   @Delete(':id')
   async delete(@Param('id') id: string, @Req() request: AuthenticatedRequest) {
     const post = await this.postsService.getById(id);

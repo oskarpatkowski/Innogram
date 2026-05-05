@@ -311,4 +311,59 @@ export class PostsService {
       },
     };
   }
+
+  async like(postId: string, profileId: string) {
+    const user = await this.prisma.profile.findFirst({
+      where: {
+        id: profileId,
+      },
+    });
+
+    if (!user) {
+      throw new Error(`User for profile ${profileId} not found`);
+    }
+
+    const like = await this.prisma.postLike.create({
+      data: {
+        postId: postId,
+        profileId: profileId,
+        createdById: user.id,
+        updatedById: user.id,
+      },
+    });
+
+    Logger.log(`Post ${postId} liked by user ${profileId}`, 'PostsService');
+
+    return like;
+  }
+
+  async unlike(postId: string, profileId: string) {
+    const like = await this.prisma.postLike.delete({
+      where: {
+        postId_profileId: {
+          postId: postId,
+          profileId: profileId,
+        },
+      },
+    });
+
+    Logger.log(`Post ${postId} unliked by user ${profileId}`, 'PostsService');
+
+    return like;
+  }
+
+  async getLikes(postId: string) {
+    const likes = await this.prisma.postLike.findMany({
+      where: {
+        postId: postId,
+      },
+    });
+
+    Logger.log(
+      `Found ${likes.length} likes for post ${postId}`,
+      'PostsService',
+    );
+
+    return likes;
+  }
 }

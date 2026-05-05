@@ -98,6 +98,11 @@ export class ProfileController {
     return await this.profileService.setAcceptedFalse(profileFollowId);
   }
 
+  @Patch('/visibility')
+  async changeVisibility(@Req() request: AuthenticatedRequest) {
+    return await this.profileService.changeVisibility(request.user.profileId);
+  }
+
   @Delete('/reject/:profileFollowId')
   async deleteRequest(@Param('profileFollowId') profileFollowId: string) {
     return await this.profileService.rejectFollow(profileFollowId);

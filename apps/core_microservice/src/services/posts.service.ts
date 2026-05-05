@@ -377,8 +377,8 @@ export class PostsService {
       data: {
         postId: postId,
         profileId: profileId,
-        createdById: user.id,
-        updatedById: user.id,
+        createdById: user.userId,
+        updatedById: user.userId,
       },
     });
 

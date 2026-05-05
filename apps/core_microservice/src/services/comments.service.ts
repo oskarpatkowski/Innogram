@@ -22,8 +22,8 @@ export class CommentsService {
       data: {
         ...dto,
         profileId: profileId,
-        createdById: user.id,
-        updatedById: user.id,
+        createdById: user.userId,
+        updatedById: user.userId,
       },
     });
 
@@ -89,22 +89,22 @@ export class CommentsService {
   }
 
   async like(commentId: string, profileId: string) {
-    const user = await this.prisma.user.findUnique({
+    const profile = await this.prisma.profile.findUnique({
       where: {
         id: profileId,
       },
     });
 
-    if (!user) {
-      throw new Error(`User for profile ${profileId} not found`);
+    if (!profile) {
+      throw new Error(`Profile ${profileId} not found`);
     }
 
     const commentLike = await this.prisma.commentLike.create({
       data: {
         commentId: commentId,
         profileId: profileId,
-        createdById: user.id,
-        updatedById: user.id,
+        createdById: profile.userId,
+        updatedById: profile.userId,
       },
     });
 
@@ -132,5 +132,55 @@ export class CommentsService {
     );
 
     return like;
+  }
+
+  async getForPost(postId: string) {
+    const post = await this.prisma.post.findUnique({
+      where: {
+        id: postId,
+      },
+    });
+
+    if (!post) {
+      throw new Error(`Post ${postId} not found`);
+    }
+
+    const comments = await this.prisma.comment.findMany({
+      where: {
+        postId: postId,
+      },
+    });
+
+    Logger.log(
+      `Found ${comments.length} comments for post ${postId}`,
+      'CommentsService',
+    );
+
+    return comments;
+  }
+
+  async getLikes(commentId: string) {
+    const comment = await this.prisma.comment.findUnique({
+      where: {
+        id: commentId,
+      },
+    });
+
+    if (!comment) {
+      throw new Error(`Comment ${commentId} not found`);
+    }
+
+    const likes = await this.prisma.commentLike.findMany({
+      where: {
+        commentId: commentId,
+      },
+    });
+
+    Logger.log(
+      `Found ${likes.length} likes for comment ${commentId}`,
+      'CommentsService',
+    );
+
+    return likes;
   }
 }

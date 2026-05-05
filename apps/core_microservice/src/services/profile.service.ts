@@ -73,6 +73,10 @@ export class ProfileService {
   }
 
   async follow(followingProfileId: string, followerProfileId: string) {
+    if (followingProfileId === followerProfileId) {
+      throw new Error('A profile cannot follow itself');
+    }
+
     const followedProfile = await this.prisma.profile.findFirst({
       where: {
         id: followingProfileId,
@@ -97,8 +101,8 @@ export class ProfileService {
       data: {
         followingProfileId: followingProfileId,
         followerProfileId: followerProfileId,
-        createdById: followerUser.id,
-        updatedById: followerUser.id,
+        createdById: followerUser.userId,
+        updatedById: followerUser.userId,
         accepted: followedProfile.isPublic,
       },
     });
@@ -109,7 +113,7 @@ export class ProfileService {
         title: 'New Follower',
         message: `${followerUser.username} started following you.`,
         data: JSON.stringify({ profileId: followingProfileId }),
-        createdById: followerUser.id,
+        createdById: followerUser.userId,
         recipientId: followedProfile.id,
       },
     });
@@ -203,7 +207,7 @@ export class ProfileService {
   async getFollowers(profileId: string) {
     const followers = await this.prisma.profile.findMany({
       where: {
-        following: {
+        followers: {
           some: {
             followingProfileId: profileId,
           },
@@ -222,7 +226,7 @@ export class ProfileService {
   async getFollowing(profileId: string) {
     const following = await this.prisma.profile.findMany({
       where: {
-        followers: {
+        following: {
           some: {
             followerProfileId: profileId,
           },

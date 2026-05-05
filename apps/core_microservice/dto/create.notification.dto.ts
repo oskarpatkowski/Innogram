@@ -32,4 +32,9 @@ export class CreateNotificationDto {
   @IsNotEmpty({ message: 'createdById is required' })
   @ApiProperty()
   createdById!: string;
+
+  @IsString({ message: 'recipientId must be a string' })
+  @IsNotEmpty({ message: 'recipientId is required' })
+  @ApiProperty()
+  recipientId!: string;
 }

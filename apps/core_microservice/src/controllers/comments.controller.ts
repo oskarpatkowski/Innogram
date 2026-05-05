@@ -41,6 +41,11 @@ export class CommentsController {
     return await this.commentsService.getById(id);
   }
 
+  @Get('/post/:postId')
+  async getForPost(@Param('postId') postId: string) {
+    return await this.commentsService.getForPost(postId);
+  }
+
   @Put(':id')
   async update(@Param('id') id: string, @Body() commentDto: UpdateCommentDto) {
     return await this.commentsService.update(id, commentDto);
@@ -49,6 +54,11 @@ export class CommentsController {
   @Delete(':id')
   async delete(@Param('id') id: string) {
     return await this.commentsService.delete(id);
+  }
+
+  @Get(':id/likes')
+  async getLikes(@Param('id') id: string) {
+    return await this.commentsService.getLikes(id);
   }
 
   @Post(':id/like')

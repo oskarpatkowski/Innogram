@@ -26,6 +26,26 @@ export class ProfileController {
     return await this.profileService.create(profileDto);
   }
 
+  @Get('/follow-requests')
+  async getFollowRequests(@Req() request: AuthenticatedRequest) {
+    return await this.profileService.getFollowRequests(request.user.profileId);
+  }
+
+  @Get('/followers')
+  async getFollowers(@Req() request: AuthenticatedRequest) {
+    return await this.profileService.getFollowers(request.user.profileId);
+  }
+
+  @Get('/following')
+  async getFollowing(@Req() request: AuthenticatedRequest) {
+    return await this.profileService.getFollowing(request.user.profileId);
+  }
+
+  @Get('/followers/:id')
+  async getFollowersById(@Param('id') id: string) {
+    return await this.profileService.getFollowers(id);
+  }
+
   @Get(':id')
   async getById(@Param('id') id: string) {
     return await this.profileService.getById(id);
@@ -76,10 +96,5 @@ export class ProfileController {
   @Patch('/reject/:profileFollowId')
   async rejectFollow(@Param('profileFollowId') profileFollowId: string) {
     return await this.profileService.setAcceptedFalse(profileFollowId);
-  }
-
-  @Get('/follow-requests')
-  async getFollowRequests(@Req() request: AuthenticatedRequest) {
-    return await this.profileService.getFollowRequests(request.user.profileId);
   }
 }

@@ -164,4 +164,42 @@ export class ProfileService {
 
     return requests;
   }
+
+  async getFollowers(profileId: string) {
+    const followers = await this.prisma.profile.findMany({
+      where: {
+        following: {
+          some: {
+            followingProfileId: profileId,
+          },
+        },
+      },
+    });
+
+    Logger.log(
+      `Found ${followers.length} followers for profile ${profileId}`,
+      'ProfileService',
+    );
+
+    return followers;
+  }
+
+  async getFollowing(profileId: string) {
+    const following = await this.prisma.profile.findMany({
+      where: {
+        followers: {
+          some: {
+            followerProfileId: profileId,
+          },
+        },
+      },
+    });
+
+    Logger.log(
+      `Found ${following.length} following for profile ${profileId}`,
+      'ProfileService',
+    );
+
+    return following;
+  }
 }

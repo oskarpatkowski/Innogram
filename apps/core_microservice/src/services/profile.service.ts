@@ -71,4 +71,97 @@ export class ProfileService {
 
     return profile;
   }
+
+  async follow(followingProfileId: string, followerProfileId: string) {
+    const followedProfile = await this.prisma.profile.findFirst({
+      where: {
+        id: followingProfileId,
+      },
+    });
+
+    if (!followedProfile) {
+      throw new Error(`Profile ${followingProfileId} not found`);
+    }
+
+    const follow = await this.prisma.profileFollow.create({
+      data: {
+        followingProfileId: followingProfileId,
+        followerProfileId: followerProfileId,
+        createdById: followerProfileId,
+        updatedById: followerProfileId,
+        accepted: followedProfile.isPublic,
+      },
+    });
+
+    Logger.log(
+      `Profile ${followingProfileId} followed by profile ${followerProfileId}`,
+      'ProfileService',
+    );
+
+    return follow;
+  }
+
+  async unfollow(followingProfileId: string, followerProfileId: string) {
+    const follow = await this.prisma.profileFollow.delete({
+      where: {
+        followerProfileId_followingProfileId: {
+          followerProfileId: followerProfileId,
+          followingProfileId: followingProfileId,
+        },
+      },
+    });
+
+    Logger.log(
+      `Profile ${followingProfileId} unfollowed by profile ${followerProfileId}`,
+      'ProfileService',
+    );
+
+    return follow;
+  }
+
+  async acceptFollow(profileFollowId: string) {
+    const follow = await this.prisma.profileFollow.update({
+      where: {
+        id: profileFollowId,
+      },
+      data: {
+        accepted: true,
+      },
+    });
+
+    Logger.log(`Profile follow ${profileFollowId} accepted`, 'ProfileService');
+
+    return follow;
+  }
+
+  async setAcceptedFalse(profileFollowId: string) {
+    const follow = await this.prisma.profileFollow.update({
+      where: {
+        id: profileFollowId,
+      },
+      data: {
+        accepted: false,
+      },
+    });
+
+    Logger.log(`Profile follow ${profileFollowId} set to not accepted`);
+
+    return follow;
+  }
+
+  async getFollowRequests(profileId: string) {
+    const requests = await this.prisma.profileFollow.findMany({
+      where: {
+        followingProfileId: profileId,
+        accepted: false,
+      },
+    });
+
+    Logger.log(
+      `Found ${requests.length} follow requests for profile ${profileId}`,
+      'ProfileService',
+    );
+
+    return requests;
+  }
 }

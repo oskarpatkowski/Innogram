@@ -1,17 +1,20 @@
 import {
   Body,
   Controller,
-  Post,
+  Delete,
   Get,
   Param,
+  Patch,
+  Post,
   Put,
-  Delete,
+  Req,
   UseGuards,
 } from '@nestjs/common';
-import { ProfileService } from '../services/profile.service';
 import { CreateProfileDto } from '../../dto/create.profile.dto';
 import { UpdateProfileDto } from '../../dto/update.profile.dto';
+import type { AuthenticatedRequest } from '../guards/access.guard';
 import { AccessGuard } from '../guards/access.guard';
+import { ProfileService } from '../services/profile.service';
 
 @Controller('profiles')
 @UseGuards(AccessGuard)
@@ -41,5 +44,42 @@ export class ProfileController {
   @Delete(':id')
   async delete(@Param('id') id: string) {
     return await this.profileService.delete(id);
+  }
+
+  @Post('/follow/:followingProfileId')
+  async follow(
+    @Param('followingProfileId') followingProfileId: string,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return await this.profileService.follow(
+      followingProfileId,
+      request.user.profileId,
+    );
+  }
+
+  @Delete('/unfollow/:followingProfileId')
+  async unfollow(
+    @Param('followingProfileId') followingProfileId: string,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return await this.profileService.unfollow(
+      followingProfileId,
+      request.user.profileId,
+    );
+  }
+
+  @Patch('/accept/:profileFollowId')
+  async acceptFollow(@Param('profileFollowId') profileFollowId: string) {
+    return await this.profileService.acceptFollow(profileFollowId);
+  }
+
+  @Patch('/reject/:profileFollowId')
+  async rejectFollow(@Param('profileFollowId') profileFollowId: string) {
+    return await this.profileService.setAcceptedFalse(profileFollowId);
+  }
+
+  @Get('/follow-requests')
+  async getFollowRequests(@Req() request: AuthenticatedRequest) {
+    return await this.profileService.getFollowRequests(request.user.profileId);
   }
 }

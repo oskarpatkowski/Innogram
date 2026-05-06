@@ -22,6 +22,7 @@ interface AuthenticatedSocket extends Socket {
 @WebSocketGateway({
   cors: {
     origin: '*',
+    credentials: true,
   },
   namespace: 'chat',
 })
@@ -46,7 +47,8 @@ export class ChatGateway
   async handleConnection(client: AuthenticatedSocket) {
     const token =
       (client.handshake.auth?.token as string | undefined) ||
-      client.handshake.headers['authorization'];
+      client.handshake.headers['authorization'] ||
+      client.handshake.headers.cookie?.match(/accessToken=([^;]+)/)?.[1];
 
     if (!token) {
       this.logger.warn('Connection without token. Disconnecting.');
@@ -142,10 +144,12 @@ export class ChatGateway
 
   @SubscribeMessage('deleteMessage')
   async handleDeleteMessage(
-    @MessageBody() messageId: string,
+    @MessageBody() payload: { messageId: string },
     @ConnectedSocket() client: AuthenticatedSocket,
   ) {
-    const messageToDelete = await this.messageService.getById(messageId);
+    const messageToDelete = await this.messageService.getById(
+      payload.messageId,
+    );
 
     if (!messageToDelete) {
       throw new Error('message not found');
@@ -155,12 +159,13 @@ export class ChatGateway
       throw new Error('not authorized');
     }
 
-    await this.messageService.delete(messageId);
+    await this.messageService.delete(payload.messageId);
 
     if (messageToDelete.chatId) {
-      this.server
-        .to(messageToDelete.chatId)
-        .emit('messageDeleted', { messageId, chatId: messageToDelete.chatId });
+      this.server.to(messageToDelete.chatId).emit('messageDeleted', {
+        messageId: payload.messageId,
+        chatId: messageToDelete.chatId,
+      });
     }
   }
 

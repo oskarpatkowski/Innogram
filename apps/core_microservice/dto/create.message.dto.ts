@@ -1,16 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateChatMessageDto {
   @IsString({ message: 'chatId must be a string' })
   @IsNotEmpty({ message: 'chatId is required' })
   @ApiProperty()
   chatId!: string;
-
-  @IsString({ message: 'profileId must be a string' })
-  @IsNotEmpty({ message: 'profileId is required' })
-  @ApiProperty()
-  profileId!: string;
 
   @IsString({ message: 'content must be a string' })
   @IsNotEmpty({ message: 'content is required' })
@@ -22,8 +17,9 @@ export class CreateChatMessageDto {
   @ApiProperty()
   replyToMessageId?: string;
 
-  @IsString({ message: 'createdById must be a string' })
-  @IsNotEmpty({ message: 'createdById is required' })
-  @ApiProperty()
-  createdById!: string;
+  @IsArray({ message: 'assetIds must be an array' })
+  @IsString({ each: true, message: 'assetIds must be an array of strings' })
+  @IsOptional()
+  @ApiProperty({ required: false })
+  assetIds?: string[];
 }

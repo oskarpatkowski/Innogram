@@ -104,6 +104,7 @@ export class ChatGateway
     const message = await this.messageService.create(
       payload,
       client.user.profileId,
+      client.user.userId,
     );
 
     this.server.to(payload.chatId).emit('newMessage', message);

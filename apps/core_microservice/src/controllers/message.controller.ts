@@ -25,7 +25,11 @@ export class MessageControler {
     @Body() dto: CreateChatMessageDto,
     @Req() request: AuthenticatedRequest,
   ) {
-    return await this.messageService.create(dto, request.user.profileId);
+    return await this.messageService.create(
+      dto,
+      request.user.profileId,
+      request.user.userId,
+    );
   }
 
   @Get(':id')

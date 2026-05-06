@@ -6,12 +6,14 @@ import {
   Param,
   Post,
   Put,
+  Req,
   UseGuards,
 } from '@nestjs/common';
-import { ChatsService } from '../services/chats.service';
 import { CreateChatDto } from '../../dto/create.chat.dto';
 import { UpdateChatDto } from '../../dto/update.chat.dto';
+import type { AuthenticatedRequest } from '../guards/access.guard';
 import { AccessGuard } from '../guards/access.guard';
+import { ChatsService } from '../services/chats.service';
 
 @Controller('chats')
 @UseGuards(AccessGuard)
@@ -19,8 +21,11 @@ export class ChatsController {
   constructor(private readonly chatsService: ChatsService) {}
 
   @Post()
-  async create(@Body() dto: CreateChatDto) {
-    return await this.chatsService.create(dto);
+  async create(
+    @Body() dto: CreateChatDto,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return await this.chatsService.create(dto, request.user.profileId);
   }
 
   @Get(':id')

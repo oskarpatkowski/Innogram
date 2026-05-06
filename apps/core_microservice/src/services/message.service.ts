@@ -7,9 +7,21 @@ import { PrismaService } from './prisma.service';
 export class MessageService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(dto: CreateChatMessageDto) {
+  async create(dto: CreateChatMessageDto, profileId: string) {
+    const profile = await this.prisma.profile.findUnique({
+      where: { id: profileId },
+    });
+
+    if (!profile) {
+      throw new Error(`Profile with id ${profileId} not found`);
+    }
+
     const message = await this.prisma.message.create({
-      data: dto,
+      data: {
+        ...dto,
+        profileId: profileId,
+        createdById: profile.userId,
+      },
     });
     Logger.log(`Message ${message.id} created`, 'MessageService');
     return message;

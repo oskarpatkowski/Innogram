@@ -1,6 +1,13 @@
 import { Type } from '@innogram/database';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import {
+  IsArray,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MaxLength,
+} from 'class-validator';
 
 export class CreateChatDto {
   @IsString({ message: 'name must be a string' })
@@ -22,4 +29,14 @@ export class CreateChatDto {
   @IsNotEmpty({ message: 'createdById is required' })
   @ApiProperty()
   createdById!: string;
+
+  @IsArray({ message: 'memberProfileIds must be an array' })
+  @IsNotEmpty({ message: 'memberProfileIds is required' })
+  @IsString({
+    each: true,
+    message: 'memberProfileIds must be an array of strings',
+  })
+  @IsOptional()
+  @ApiProperty()
+  memberProfileIds?: string[];
 }

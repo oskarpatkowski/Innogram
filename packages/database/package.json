@@ -7,6 +7,7 @@
     "migrate:dev": "prisma migrate dev",
     "migrate:deploy": "prisma migrate deploy",
     "push": "prisma db push",
+    "seed": "prisma db seed",
     "studio": "prisma studio"
   },
   "dependencies": {

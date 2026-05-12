@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   HttpCode,
+  Ip,
   Param,
   Post,
   Query,
@@ -22,9 +23,10 @@ export class AuthController {
   @Post('signup')
   public async handleSignUp(
     @Body() signupDto: SignupDto,
+    @Ip() ipAddress: string,
     @Res({ passthrough: true }) res: express.Response,
   ) {
-    const response = await this.authService.register(signupDto);
+    const response = await this.authService.register(signupDto, ipAddress);
     const { accessToken, refreshToken } = response;
 
     res.cookie('accessToken', accessToken, { httpOnly: true });
@@ -37,9 +39,10 @@ export class AuthController {
   @HttpCode(200)
   public async handleLogin(
     @Body() loginDto: LoginDto,
+    @Ip() ipAddress: string,
     @Res({ passthrough: true }) res: express.Response,
   ) {
-    const response = await this.authService.login(loginDto);
+    const response = await this.authService.login(loginDto, ipAddress);
     const { accessToken, refreshToken } = response;
 
     res.cookie('accessToken', accessToken, { httpOnly: true });
@@ -51,9 +54,19 @@ export class AuthController {
   @Post('validate')
   @HttpCode(200)
   public async handleValidate(
-    @Body('accessToken') accessToken: string,
+    @Req() req: express.Request,
+    @Body('accessToken') bodyAccessToken?: string,
   ): Promise<TokenValidationResponse> {
-    return await this.authService.validateToken(accessToken);
+    const token = bodyAccessToken || req.cookies?.['accessToken'];
+
+    if (!token) {
+      return { isValid: false, tokenPayload: {} as any };
+    }
+    try {
+      return await this.authService.validateToken(token);
+    } catch {
+      return { isValid: false, tokenPayload: {} as any };
+    }
   }
 
   @Post('refresh')
@@ -111,22 +124,26 @@ export class AuthController {
   @Get(':provider/callback')
   public async handleOAuthCallback(
     @Param('provider') provider: string,
-    @Query('ipaddress') ipaddress: string,
     @Query('useragent') useragent: string,
     @Query('code') code: string,
+    @Ip() ipAddress: string,
     @Res({ passthrough: true }) res: express.Response,
   ) {
     const request = {
       code,
-      ipAddress: ipaddress,
       userAgent: useragent,
     };
-    const response = await this.authService.oAuthCallback(request, provider);
+    const response = await this.authService.oAuthCallback(
+      request,
+      provider,
+      ipAddress,
+    );
     const { accessToken, refreshToken } = response;
 
     res.cookie('accessToken', accessToken, { httpOnly: true });
     res.cookie('refreshToken', refreshToken, { httpOnly: true });
 
-    return response;
+    const clientUrl = process.env.CLIENT_URL || 'http://localhost:3001';
+    return res.redirect(`${clientUrl}/feed`);
   }
 }

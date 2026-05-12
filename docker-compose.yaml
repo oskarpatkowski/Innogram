@@ -20,7 +20,7 @@ services:
     ports:
       - "${CORE_PORT}:${CORE_PORT}"
     environment:
-      NODE_ENV: production
+      NODE_ENV: development
       DATABASE_URL: postgresql://${POSTGRES_NAME}:${POSTGRES_PASSWD}@db:5432/${POSTGRES_NAME}
       AUTH_SERVICE_URL: "http://auth:${AUTH_PORT}"
     depends_on:
@@ -30,6 +30,9 @@ services:
         condition: service_started
       prisma-setup:
         condition: service_completed_successfully
+    volumes:
+      - .:/app
+      - /app/node_modules
 
   client:
     env_file: ".env"
@@ -39,7 +42,14 @@ services:
     ports:
       - "${CLIENT_PORT}:${CLIENT_PORT}"
     environment:
-      NODE_ENV: production
+      NODE_ENV: development
+      WATCHPACK_POLLING: true
+      CHOKIDAR_USEPOLLING: true
+      PORT: ${CLIENT_PORT}
+    command: npm run dev
+    volumes:
+      - .:/app
+      - /app/node_modules
 
   db:
     env_file: ".env"
@@ -74,6 +84,7 @@ services:
       retries: 5
 
   auth:
+    user: "root"
     env_file: ".env"
     build:
       context: .
@@ -81,11 +92,14 @@ services:
     ports:
       - "${AUTH_PORT}:${AUTH_PORT}"
     environment:
-      NODE_ENV: production
+      NODE_ENV: development
       ALLOWED_ORIGIN: "http://localhost:${CORE_PORT}"
       DATABASE_URL: postgresql://${POSTGRES_NAME}:${POSTGRES_PASSWD}@db:5432/${POSTGRES_NAME}
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      npm_config_cache: /tmp/.npm
+    working_dir: /app/apps/auth_microservice
+    command: npx --yes tsx watch src/main.ts
     depends_on:
       db:
         condition: service_healthy
@@ -93,6 +107,9 @@ services:
         condition: service_healthy
       prisma-setup:
         condition: service_completed_successfully
+    volumes:
+      - .:/app
+      - /app/node_modules
 
 volumes:
   pgdata:

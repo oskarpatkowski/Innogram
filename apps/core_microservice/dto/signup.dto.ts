@@ -38,9 +38,4 @@ export class SignupDto {
   @IsNotEmpty({ message: 'useragent is required' })
   @ApiProperty()
   userAgent!: string;
-
-  @IsString({ message: 'ipaddress must be a string' })
-  @IsNotEmpty({ message: 'ipaddress is required' })
-  @ApiProperty()
-  ipAddress!: string;
 }

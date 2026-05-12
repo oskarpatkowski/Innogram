@@ -12,11 +12,6 @@ export class LoginDto {
   @ApiProperty()
   password!: string;
 
-  @IsString({ message: 'ipAddress must be a string' })
-  @IsNotEmpty({ message: 'ipAddress is required' })
-  @ApiProperty()
-  ipAddress!: string;
-
   @IsString({ message: 'userAgent must be a string' })
   @IsNotEmpty({ message: 'userAgent is required' })
   @ApiProperty()

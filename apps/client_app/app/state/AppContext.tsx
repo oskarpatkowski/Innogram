@@ -1,4 +1,13 @@
-import { createContext, ReactNode, useContext, useState } from "react";
+"use client";
+
+import { apiClient } from "@/apiClient";
+import {
+  createContext,
+  ReactNode,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 
 export interface User {
   id: string;
@@ -9,6 +18,7 @@ export interface User {
 
 export interface AppState {
   user: User | null;
+  isInitializing: boolean;
 }
 
 export interface AppContextType {
@@ -26,10 +36,41 @@ interface AppProviderProps {
 }
 
 export function AppProvider({ children }: AppProviderProps) {
-  const [state, setState] = useState<AppState>({ user: null });
+  const [state, setState] = useState<AppState>({
+    user: null,
+    isInitializing: true,
+  });
+
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const response = await apiClient.post("/auth/validate");
+        if (response.data.isValid) {
+          const { tokenPayload } = response.data;
+          setState({
+            user: {
+              id: tokenPayload.userId || "",
+              accountId: tokenPayload.profileId || "",
+              name: "User",
+              role: tokenPayload.role || "user",
+            },
+            isInitializing: false,
+          });
+          return;
+        }
+      } catch (error) {}
+
+      setState((prev) => ({ ...prev, isInitializing: false }));
+    };
+
+    checkSession();
+  }, []);
 
   const login = (user: User) => setState((prev) => ({ ...prev, user }));
-  const logout = () => setState((prev) => ({ ...prev, user: null }));
+  const logout = () => {
+    apiClient.post("/auth/logout").catch(() => {});
+    setState((prev) => ({ ...prev, user: null }));
+  };
   const isAuthenticated = !!state.user;
 
   return (

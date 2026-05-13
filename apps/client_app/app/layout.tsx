@@ -1,13 +1,41 @@
+import { cookies } from "next/headers";
 import Layout from "./components/layout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import "./globals.css";
-import { AppProvider } from "./state/AppContext";
+import { AppProvider, User } from "./state/AppContext";
 
-export default function RootLayout({
+function decodeJwt(token: string): any {
+  try {
+    const base64Url = token.split(".")[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const jsonPayload = Buffer.from(base64, "base64").toString("utf-8");
+    return JSON.parse(jsonPayload);
+  } catch (e) {
+    return null;
+  }
+}
+
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const cookieStore = await cookies();
+  const accessToken = cookieStore.get("accessToken")?.value;
+  let initialUser: User | null = null;
+
+  if (accessToken) {
+    const payload = decodeJwt(accessToken);
+    if (payload) {
+      initialUser = {
+        id: payload.userId || "",
+        accountId: payload.profileId || "",
+        name: "User",
+        role: payload.role || "user",
+      };
+    }
+  }
+
   return (
     <html lang="en">
       <head>
@@ -17,7 +45,7 @@ export default function RootLayout({
         />
       </head>
       <body>
-        <AppProvider>
+        <AppProvider initialUser={initialUser}>
           <ProtectedRoute>
             <Layout>{children}</Layout>
           </ProtectedRoute>

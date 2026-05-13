@@ -17,6 +17,8 @@ services:
     build:
       context: .
       dockerfile: apps/core_microservice/Dockerfile
+    working_dir: /app/apps/core_microservice
+    command: npm run start:dev
     ports:
       - "${CORE_PORT}:${CORE_PORT}"
     environment:

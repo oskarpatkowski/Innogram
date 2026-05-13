@@ -5,7 +5,6 @@ import {
   createContext,
   ReactNode,
   useContext,
-  useEffect,
   useState,
 } from "react";
 
@@ -33,38 +32,14 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 interface AppProviderProps {
   children: ReactNode;
+  initialUser?: User | null;
 }
 
-export function AppProvider({ children }: AppProviderProps) {
+export function AppProvider({ children, initialUser = null }: AppProviderProps) {
   const [state, setState] = useState<AppState>({
-    user: null,
-    isInitializing: true,
+    user: initialUser,
+    isInitializing: false,
   });
-
-  useEffect(() => {
-    const checkSession = async () => {
-      try {
-        const response = await apiClient.post("/auth/validate");
-        if (response.data.isValid) {
-          const { tokenPayload } = response.data;
-          setState({
-            user: {
-              id: tokenPayload.userId || "",
-              accountId: tokenPayload.profileId || "",
-              name: "User",
-              role: tokenPayload.role || "user",
-            },
-            isInitializing: false,
-          });
-          return;
-        }
-      } catch (error) {}
-
-      setState((prev) => ({ ...prev, isInitializing: false }));
-    };
-
-    checkSession();
-  }, []);
 
   const login = (user: User) => setState((prev) => ({ ...prev, user }));
   const logout = () => {

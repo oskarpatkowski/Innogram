@@ -2,7 +2,9 @@ import {
   Body,
   Controller,
   Get,
+  Headers,
   HttpCode,
+  HttpException,
   Ip,
   Param,
   Post,
@@ -12,9 +14,12 @@ import {
 } from '@nestjs/common';
 import express from 'express';
 import { LoginDto } from '../../dto/login.dto';
-import { RefreshDto } from '../../dto/refresh.dto';
 import { SignupDto } from '../../dto/signup.dto';
-import { AuthService, TokenValidationResponse } from '../services/auth.service';
+import {
+  AppJwtPayload,
+  AuthService,
+  TokenValidationResponse,
+} from '../services/auth.service';
 
 @Controller('auth')
 export class AuthController {
@@ -57,30 +62,43 @@ export class AuthController {
     @Req() req: express.Request,
     @Body('accessToken') bodyAccessToken?: string,
   ): Promise<TokenValidationResponse> {
-    const token = bodyAccessToken || req.cookies?.['accessToken'];
+    const cookieToken = req.cookies?.['accessToken'] as string | undefined;
+    const token = bodyAccessToken || cookieToken;
 
     if (!token) {
-      return { isValid: false, tokenPayload: {} as any };
+      return { isValid: false, tokenPayload: {} as AppJwtPayload };
     }
     try {
       return await this.authService.validateToken(token);
     } catch {
-      return { isValid: false, tokenPayload: {} as any };
+      return { isValid: false, tokenPayload: {} as AppJwtPayload };
     }
   }
 
   @Post('refresh')
   @HttpCode(200)
   public async handleRefresh(
-    @Body() refreshDto: RefreshDto,
+    @Req() req: express.Request,
+    @Ip() ipAddress: string,
+    @Headers('user-agent') userAgent: string,
     @Res({ passthrough: true }) res: express.Response,
   ) {
+    const refreshToken = req.cookies?.['refreshToken'] as string | undefined;
+
+    if (!refreshToken) {
+      throw new HttpException('No refresh token provided', 401);
+    }
+
     try {
-      const response = await this.authService.refreshToken(refreshDto);
-      const { accessToken, refreshToken } = response;
+      const response = await this.authService.refreshToken(
+        refreshToken,
+        ipAddress,
+        userAgent || '',
+      );
+      const { accessToken, refreshToken: newRefreshToken } = response;
 
       res.cookie('accessToken', accessToken, { httpOnly: true });
-      res.cookie('refreshToken', refreshToken, { httpOnly: true });
+      res.cookie('refreshToken', newRefreshToken, { httpOnly: true });
 
       return response;
     } catch (error) {
@@ -96,9 +114,7 @@ export class AuthController {
     @Req() req: express.Request,
     @Res({ passthrough: true }) res: express.Response,
   ) {
-    const refreshToken: string | undefined = req.cookies?.[
-      'refreshToken'
-    ] as string;
+    const refreshToken = req.cookies?.['refreshToken'] as string | undefined;
     res.clearCookie('accessToken');
     res.clearCookie('refreshToken');
     if (refreshToken) {
@@ -144,6 +160,6 @@ export class AuthController {
     res.cookie('refreshToken', refreshToken, { httpOnly: true });
 
     const clientUrl = process.env.CLIENT_URL || 'http://localhost:3001';
-    return res.redirect(`${clientUrl}/feed`);
+    return res.redirect(`${clientUrl}/`);
   }
 }

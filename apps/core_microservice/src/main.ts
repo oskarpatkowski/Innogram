@@ -58,10 +58,11 @@ async function bootstrap() {
   );
 
   app.enableCors({
-    origin: 'http://localhost:3001',
+    origin: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
-    allowedHeaders: 'Content-Type, Authorization',
+    allowedHeaders:
+      'Content-Type, Authorization, Accept, Origin, X-Requested-With',
   });
 
   app.useStaticAssets(join(process.cwd(), 'uploads'), {

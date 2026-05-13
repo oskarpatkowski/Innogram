@@ -2,7 +2,6 @@ import { HttpException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance } from 'axios';
 import { LoginDto } from '../../dto/login.dto';
-import { RefreshDto } from '../../dto/refresh.dto';
 import { SignupDto } from '../../dto/signup.dto';
 import { PrismaService } from '../services/prisma.service';
 
@@ -124,12 +123,20 @@ export class AuthService {
     return response.data;
   }
 
-  public async refreshToken(refreshDto: RefreshDto) {
+  public async refreshToken(
+    refreshToken: string,
+    ipAddress: string,
+    userAgent: string,
+  ) {
     Logger.log('Refreshing token', 'AuthService');
 
     const response = await this.axiosClient.post<tokensResponse>(
       '/internal/auth/refresh',
-      refreshDto,
+      {
+        refreshToken,
+        ipAddress,
+        userAgent,
+      },
     );
 
     return response.data;

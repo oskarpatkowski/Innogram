@@ -1,7 +1,7 @@
 "use client";
 
 import NextLink from "next/link";
-import { useRouter as useNavigationRouter } from "next/navigation";
+import { useRouter as useNavigationRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState as useComponentState, useEffect } from "react";
 import { apiClient, extractErrorMessage } from "../../../apiClient";
 import { useAppContext } from "../../state/AppContext";
@@ -12,6 +12,7 @@ interface GoogleResponse {
 
 function SignUpForm() {
   const router = useNavigationRouter();
+  const searchParams = useSearchParams();
   const { login } = useAppContext();
 
   const [email, setEmail] = useComponentState("");
@@ -167,7 +168,8 @@ function SignUpForm() {
         role: payload.role || "user",
       });
 
-      router.push("/feed");
+      router.push("/");
+
     } catch (err) {
       setError(extractErrorMessage(err));
     } finally {

@@ -23,11 +23,13 @@ export default function ProtectedRoute({
     if (isInitializing) return;
 
     if (!isAuthenticated && !isAuthRoute && !isHomePage) {
-      router.push(
-        `/auth/signin?callbackUrl=${encodeURIComponent(pathname || "/")}`,
+      router.replace(
+        `/auth/signin`,
       );
     } else if (isAuthenticated && isAuthRoute) {
-      router.push("/feed");
+      router.replace("/");
+    } else if (isAuthenticated && isHomePage) {
+      router.replace("/");
     }
   }, [
     isAuthenticated,

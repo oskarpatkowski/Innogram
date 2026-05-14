@@ -11,7 +11,6 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { PrismaClientExceptionFilter } from 'nestjs-prisma';
-import { join } from 'path';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './filters/exception.filter';
 
@@ -23,9 +22,11 @@ async function bootstrap() {
     }),
   });
 
-  app.use(helmet({
-    crossOriginResourcePolicy: { policy: "cross-origin" }
-  }));
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+    }),
+  );
   app.use(cookieParser());
 
   const config = new DocumentBuilder()

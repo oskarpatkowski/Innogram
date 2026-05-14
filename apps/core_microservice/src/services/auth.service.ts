@@ -38,6 +38,11 @@ export interface tokensResponse {
   refreshToken: string;
 }
 
+export interface RevokeSessionsResponse {
+  message?: string;
+  success: boolean;
+}
+
 interface OAuthRequest {
   code: string;
   userAgent: string;
@@ -183,12 +188,17 @@ export class AuthService {
     return response.data;
   }
 
-  public async revokeAllSessions(userId: string) {
+  public async revokeAllSessions(
+    userId: string,
+  ): Promise<RevokeSessionsResponse> {
     Logger.log(`Revoking all sessions for user: ${userId}`, 'AuthService');
 
-    const response = await this.axiosClient.post('/internal/auth/revoke-all', {
-      userId,
-    });
+    const response = await this.axiosClient.post<RevokeSessionsResponse>(
+      '/internal/auth/revoke-all',
+      {
+        userId,
+      },
+    );
 
     return response.data;
   }

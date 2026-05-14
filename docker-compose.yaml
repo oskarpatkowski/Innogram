@@ -1,4 +1,17 @@
 services:
+  prisma-setup:
+    env_file: ".env"
+    build:
+      context: .
+      dockerfile: apps/core_microservice/Dockerfile
+    working_dir: /app/packages/database
+    command: npx prisma db push
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_NAME}:${POSTGRES_PASSWD}@db:5432/${POSTGRES_NAME}
+    depends_on:
+      db:
+        condition: service_healthy
+
   core:
     env_file: ".env"
     build:
@@ -15,6 +28,8 @@ services:
         condition: service_healthy
       auth:
         condition: service_started
+      prisma-setup:
+        condition: service_completed_successfully
 
   client:
     env_file: ".env"
@@ -76,6 +91,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      prisma-setup:
+        condition: service_completed_successfully
 
 volumes:
   pgdata:

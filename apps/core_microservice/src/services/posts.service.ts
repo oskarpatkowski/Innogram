@@ -17,6 +17,16 @@ export class PostsService {
     });
     Logger.log(`Post ${post.id} created`, 'PostsService');
 
+    this.handleMentions(dto.content, post.id, profileId, userId).catch(
+      (err) => {
+        Logger.error(
+          `Failed to handle mentions for post ${post.id}`,
+          err instanceof Error ? err.message : String(err),
+          'PostsService',
+        );
+      },
+    );
+
     if (dto.assetIds) {
       for (const assetId of dto.assetIds) {
         await this.linkAssetToPost(assetId, post.id, userId);
@@ -28,6 +38,46 @@ export class PostsService {
     }
 
     return post;
+  }
+
+  private async handleMentions(
+    content: string,
+    postId: string,
+    authorProfileId: string,
+    authorUserId: string,
+  ) {
+    const mentionRegex = /@([a-zA-Z0-9_.-]+)/g;
+    const matches = [...content.matchAll(mentionRegex)];
+    const usernames = matches.map((match) => match[1]);
+
+    if (usernames.length === 0) return;
+
+    const uniqueUsernames = [...new Set(usernames)];
+
+    const mentionedProfiles = await this.prisma.profile.findMany({
+      where: {
+        username: { in: uniqueUsernames },
+        id: { not: authorProfileId },
+      },
+    });
+
+    for (const profile of mentionedProfiles) {
+      await this.prisma.notification.create({
+        data: {
+          type: 'MENTION',
+          title: 'New Mention',
+          message: `You were mentioned in a post.`,
+          data: JSON.stringify({ postId, authorProfileId }),
+          createdById: authorUserId,
+          recipientId: profile.id,
+        },
+      });
+    }
+
+    Logger.log(
+      `Handled ${mentionedProfiles.length} mentions for post ${postId}`,
+      'PostsService',
+    );
   }
 
   async getById(id: string) {
@@ -310,5 +360,60 @@ export class PostsService {
         lastCursor: cursor,
       },
     };
+  }
+
+  async like(postId: string, profileId: string) {
+    const user = await this.prisma.profile.findFirst({
+      where: {
+        id: profileId,
+      },
+    });
+
+    if (!user) {
+      throw new Error(`User for profile ${profileId} not found`);
+    }
+
+    const like = await this.prisma.postLike.create({
+      data: {
+        postId: postId,
+        profileId: profileId,
+        createdById: user.userId,
+        updatedById: user.userId,
+      },
+    });
+
+    Logger.log(`Post ${postId} liked by user ${profileId}`, 'PostsService');
+
+    return like;
+  }
+
+  async unlike(postId: string, profileId: string) {
+    const like = await this.prisma.postLike.delete({
+      where: {
+        postId_profileId: {
+          postId: postId,
+          profileId: profileId,
+        },
+      },
+    });
+
+    Logger.log(`Post ${postId} unliked by user ${profileId}`, 'PostsService');
+
+    return like;
+  }
+
+  async getLikes(postId: string) {
+    const likes = await this.prisma.postLike.findMany({
+      where: {
+        postId: postId,
+      },
+    });
+
+    Logger.log(
+      `Found ${likes.length} likes for post ${postId}`,
+      'PostsService',
+    );
+
+    return likes;
   }
 }

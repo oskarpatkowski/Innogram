@@ -191,6 +191,21 @@ export const authenticateUser = async (loginDto: LoginDto) => {
     throw new HttpError("User record missing", 404);
   }
 
+  if (!user.profile) {
+    const username = account.email.split("@")[0] || "user";
+    const profile = await prismaClient.profile.create({
+      data: {
+        username: username,
+        displayName: username,
+        birthday: new Date(Date.now()),
+        bio: "",
+        userId: user.id,
+        createdById: user.id,
+      },
+    });
+    user.profile = profile;
+  }
+
   const tokens = generateToken(user);
 
   const redisExpirySeconds = getRedisExpirySeconds(config.jwtRefreshExpiresIn);
@@ -241,6 +256,21 @@ export const processRefreshtoken = async (
   });
   if (isBlacklisted) {
     throw new HttpError("Token has been revoked", 401);
+  }
+
+  if (!user.profile) {
+    const username = user.account?.email.split("@")[0] || "user_" + user.id.slice(0, 8);
+    const profile = await prismaClient.profile.create({
+      data: {
+        username: username,
+        displayName: username,
+        birthday: new Date(Date.now()),
+        bio: "",
+        userId: user.id,
+        createdById: user.id,
+      },
+    });
+    user.profile = profile;
   }
 
   const tokens = generateToken(user);
@@ -333,6 +363,24 @@ export const exchangeCodeForToken = async (
         profile: true,
       },
     });
+
+    if (user && !user.profile) {
+      const baseUsername =
+        payload.name?.replace(/\s+/g, "").toLowerCase() ||
+        payload.email.split("@")[0] ||
+        "";
+      const profile = await prismaClient.profile.create({
+        data: {
+          username: baseUsername,
+          displayName: payload.name || baseUsername,
+          birthday: new Date(Date.now()),
+          bio: "",
+          userId: user.id,
+          createdById: user.id,
+        },
+      });
+      user.profile = profile;
+    }
   }
 
   if (!user) {
@@ -407,4 +455,9 @@ export const handleLogout = async (refreshToken: string) => {
   await redisAuthRepository.deleteSessionByRefreshTokenId(
     decoded.jwtId as string,
   );
+};
+
+export const revokeAllUserSessions = async (userId: string) => {
+  await redisAuthRepository.deleteAllSessionsByUserId(userId);
+  return { success: true };
 };

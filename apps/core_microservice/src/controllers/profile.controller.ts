@@ -93,8 +93,6 @@ export class ProfileController {
     );
   }
 
-
-
   @Patch('/accept/:profileFollowId')
   async acceptFollow(@Param('profileFollowId') profileFollowId: string) {
     return await this.profileService.acceptFollow(profileFollowId);

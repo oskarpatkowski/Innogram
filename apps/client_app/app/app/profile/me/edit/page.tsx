@@ -2,6 +2,7 @@
 
 import { useEffect, useState, ChangeEvent, FormEvent } from "react";
 import { apiClient } from "@/apiClient";
+import {useAppContext} from "@/app/state/AppContext";
 
 export interface ProfileData {
     id: string;
@@ -26,6 +27,10 @@ export default function EditProfile() {
     const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
     const [saveMessage, setSaveMessage] = useState("");
 
+    // Modal State
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+
     const [formData, setFormData] = useState({
         username: "",
         displayName: "",
@@ -35,6 +40,10 @@ export default function EditProfile() {
     });
 
     const [errors, setErrors] = useState<Record<string, string>>({});
+
+    const {
+        logout,
+    } = useAppContext();
 
     useEffect(() => {
         const fetchProfileData = async () => {
@@ -66,7 +75,6 @@ export default function EditProfile() {
     const validateForm = () => {
         const newErrors: Record<string, string> = {};
 
-        // Username Validation
         if (!formData.username.trim()) {
             newErrors.username = "Username is required.";
         } else if (formData.username.length > 30) {
@@ -75,19 +83,16 @@ export default function EditProfile() {
             newErrors.username = "Usernames can only use letters, numbers, underscores and periods.";
         }
 
-        // Display Name Validation
         if (formData.displayName.length > 50) {
             newErrors.displayName = "Name must be 50 characters or fewer.";
         }
 
-        // Bio Validation (Now Required)
         if (!formData.bio.trim()) {
             newErrors.bio = "Bio is required.";
         } else if (formData.bio.length > 150) {
             newErrors.bio = "Bio must be 150 characters or fewer.";
         }
 
-        // Birthday Validation
         if (formData.birthday) {
             const selectedDate = new Date(formData.birthday);
             const today = new Date();
@@ -129,7 +134,6 @@ export default function EditProfile() {
         setSaveMessage("");
 
         try {
-            // Put request using the form data
             await apiClient.put(`/profiles/${profile.id}`, formData);
             setSaveMessage("Profile saved successfully.");
 
@@ -154,13 +158,12 @@ export default function EditProfile() {
             setProfile({ ...profile, avatarUrl: objectUrl });
 
             const uploadData = new FormData();
-            uploadData.append("file", file); // Must match what FileUploadInterceptor expects
+            uploadData.append("file", file);
 
             const { data } = await apiClient.post("/assets", uploadData);
 
             if (data.filePath) {
                 const newAvatarUrl = data.filePath;
-
                 setProfile({ ...profile, avatarUrl: newAvatarUrl });
 
                 await apiClient.put(`/profiles/${profile.id}`, {
@@ -174,13 +177,26 @@ export default function EditProfile() {
         } catch (error) {
             console.error(error);
             setSaveMessage("Failed to upload picture.");
-
-            // Revert on failure
             setProfile({ ...profile });
         } finally {
             setIsUploadingPhoto(false);
-            // Clear the file input so the same file can be selected again if needed
             e.target.value = '';
+        }
+    };
+
+    const handleDeleteAccount = async () => {
+        if (!profile) return;
+        setIsDeleting(true);
+        try {
+            await apiClient.delete(`/profiles/${profile.id}`);
+            logout();
+            window.location.href = "/";
+        } catch (error) {
+            console.error(error);
+            setSaveMessage("Failed to delete account.");
+            setIsDeleteModalOpen(false);
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -199,7 +215,7 @@ export default function EditProfile() {
     }
 
     return (
-        <div className="max-w-2xl mx-auto w-full p-4 sm:p-6 md:p-8 sm:mt-8 bg-white sm:border sm:border-gray-200 rounded-lg">
+        <div className="max-w-2xl mx-auto w-full p-4 sm:p-6 md:p-8 sm:mt-8 bg-white sm:border sm:border-gray-200 rounded-lg relative">
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6">
                 Edit Profile
             </h1>
@@ -366,7 +382,7 @@ export default function EditProfile() {
                     </div>
                 </div>
 
-                <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 pt-4">
+                <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 pt-4 border-b pb-8 border-gray-200">
                     <div className="hidden sm:block sm:w-1/4"></div>
                     <div className="w-full sm:w-3/4 flex items-center justify-between">
                         <button
@@ -391,6 +407,47 @@ export default function EditProfile() {
                     </div>
                 </div>
             </form>
+
+            {/* Restored Delete Button Styling */}
+            <div className='flex flex-row mt-2'>
+                <div className="flex-1"></div>
+                <button
+                    onClick={() => setIsDeleteModalOpen(true)}
+                    type="button"
+                    className="bg-red-800 text-white rounded-md m-2 p-2 hover:bg-red-900 transition-all hover:cursor-pointer text-sm font-semibold"
+                >
+                    Delete account
+                </button>
+            </div>
+
+            {isDeleteModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 px-4">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-200">
+                        <div className="p-6 text-center">
+                            <h3 className="text-xl font-bold text-gray-900 mb-2">Delete Account?</h3>
+                            <p className="text-sm text-gray-500">
+                                Are you sure you want to delete your account? This action cannot be undone and you will lose all your data.
+                            </p>
+                        </div>
+                        <div className="border-t border-gray-200 flex flex-col">
+                            <button
+                                onClick={handleDeleteAccount}
+                                disabled={isDeleting}
+                                className="w-full py-3.5 text-red-500 font-bold text-sm border-b border-gray-200 hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                            >
+                                {isDeleting ? "Deleting..." : "Delete"}
+                            </button>
+                            <button
+                                onClick={() => setIsDeleteModalOpen(false)}
+                                disabled={isDeleting}
+                                className="w-full py-3.5 text-gray-900 font-normal text-sm hover:bg-gray-50 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

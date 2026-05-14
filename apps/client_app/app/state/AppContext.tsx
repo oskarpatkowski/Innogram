@@ -43,8 +43,9 @@ export function AppProvider({ children, initialUser = null }: AppProviderProps) 
 
   const login = (user: User) => setState((prev) => ({ ...prev, user }));
   const logout = () => {
-    apiClient.post("/auth/logout").catch(() => {});
-    setState((prev) => ({ ...prev, user: null }));
+    apiClient.post("/auth/logout").finally(() => {
+      setState((prev) => ({ ...prev, user: null }));
+    });
   };
   const isAuthenticated = !!state.user;
 

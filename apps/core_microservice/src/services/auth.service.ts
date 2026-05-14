@@ -182,4 +182,14 @@ export class AuthService {
 
     return response.data;
   }
+
+  public async revokeAllSessions(userId: string) {
+    Logger.log(`Revoking all sessions for user: ${userId}`, 'AuthService');
+
+    const response = await this.axiosClient.post('/internal/auth/revoke-all', {
+      userId,
+    });
+
+    return response.data;
+  }
 }

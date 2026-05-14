@@ -7,6 +7,7 @@ import {
   refresh,
   register,
   validate,
+  revokeAll,
 } from "../controllers/auth.js";
 
 export const authRouter = Router();
@@ -51,5 +52,10 @@ authRouter.post("/oauth/exchange-code", async (req, res) => {
 
 authRouter.get("/oauth/initiate", async (_req, res) => {
   const data = await oauthInitiate();
+  res.json(data);
+});
+
+authRouter.post("/revoke-all", async (req, res) => {
+  const data = await revokeAll(req.body.userId);
   res.json(data);
 });

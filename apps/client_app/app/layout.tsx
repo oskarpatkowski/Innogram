@@ -4,6 +4,8 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import "./globals.css";
 import { AppProvider, User } from "./state/AppContext";
 
+//JSON.parse returns any
+/* eslint-disable @typescript-eslint/no-explicit-any */
 function decodeJwt(token: string): any {
   try {
     const base64Url = token.split(".")[1];

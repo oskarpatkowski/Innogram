@@ -23,7 +23,9 @@ async function bootstrap() {
     }),
   });
 
-  app.use(helmet());
+  app.use(helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" }
+  }));
   app.use(cookieParser());
 
   const config = new DocumentBuilder()
@@ -63,10 +65,7 @@ async function bootstrap() {
     credentials: true,
     allowedHeaders:
       'Content-Type, Authorization, Accept, Origin, X-Requested-With',
-  });
-
-  app.useStaticAssets(join(process.cwd(), 'uploads'), {
-    prefix: '/uploads/',
+    exposedHeaders: 'Cross-Origin-Resource-Policy',
   });
 
   const port = process.env.PORT || 3000;

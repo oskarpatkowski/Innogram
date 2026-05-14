@@ -11,6 +11,14 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async rewrites() {
+    return [
+      {
+        source: '/uploads/:path*',
+        destination: `${process.env.CORE_URL || 'http://core:3000'}/uploads/:path*`,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

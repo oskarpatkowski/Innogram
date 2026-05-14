@@ -72,12 +72,77 @@ export class PostsService {
           recipientId: profile.id,
         },
       });
+
+      await this.prisma.postMention.create({
+        data: {
+          postId: postId,
+          profileId: profile.id,
+          createdById: authorUserId,
+        },
+      });
     }
 
     Logger.log(
       `Handled ${mentionedProfiles.length} mentions for post ${postId}`,
       'PostsService',
     );
+  }
+
+  async getMentionedPosts(
+    profileId: string,
+    take: number,
+    lastCursor?: string,
+  ) {
+    const result = await this.prisma.post.findMany({
+      take: take + 1,
+      ...(lastCursor && {
+        skip: 1,
+        cursor: {
+          id: lastCursor,
+        },
+      }),
+      where: {
+        postMentions: {
+          some: {
+            profileId: profileId,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    if (result.length == 0) {
+      return {
+        data: [],
+        metaData: {
+          hasNextPage: false,
+          lastCursor: null,
+        },
+      };
+    }
+
+    const hasNextPage = result.length > take;
+    if (hasNextPage) {
+      result.pop();
+    }
+
+    const lastPostInResults = result[result.length - 1];
+    const cursor = lastPostInResults.id;
+
+    Logger.log(
+      `Found ${result.length} mentioned posts for profile ${profileId}`,
+      'PostsService',
+    );
+
+    return {
+      data: result,
+      metaData: {
+        hasNextPage,
+        lastCursor: cursor,
+      },
+    };
   }
 
   async getById(id: string) {

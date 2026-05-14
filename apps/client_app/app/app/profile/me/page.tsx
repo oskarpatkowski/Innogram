@@ -1,7 +1,12 @@
+import {UserProfile as ProfileComponent} from '@/app/components/ProfileComponent'
+
+
+
 export default function Me() {
-  return (
-    <div>
-      me
-    </div>
-  );
+
+    return (
+        <div>
+            <ProfileComponent></ProfileComponent>
+        </div>
+    );
 }

@@ -31,6 +31,11 @@ export class ProfileController {
     return await this.profileService.getFollowRequests(request.user.profileId);
   }
 
+  @Get('/me')
+  async getMe(@Req() request: AuthenticatedRequest) {
+    return await this.profileService.getById(request.user.profileId);
+  }
+
   @Get('/followers')
   async getFollowers(@Req() request: AuthenticatedRequest) {
     return await this.profileService.getFollowers(request.user.profileId);

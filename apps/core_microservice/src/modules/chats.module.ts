@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { ChatsController } from '../controllers/chats.controller';
 import { MessageControler } from '../controllers/message.controller';
 import { AuthService } from '../services/auth.service';
+import { ChatGateway } from '../services/chat.gateway';
 import { ChatsService } from '../services/chats.service';
 import { MessageService } from '../services/message.service';
 import { PrismaService } from '../services/prisma.service';
@@ -11,6 +12,7 @@ import { PrismaService } from '../services/prisma.service';
   imports: [],
   controllers: [ChatsController, MessageControler],
   providers: [
+    ChatGateway,
     ChatsService,
     MessageService,
     PrismaService,

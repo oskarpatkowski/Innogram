@@ -98,4 +98,24 @@ export class AssetsService {
 
     return assets;
   }
+
+  async getByMessageId(messageId: string) {
+    const message = await this.prisma.message.findUnique({
+      where: {
+        id: messageId,
+      },
+    });
+
+    if (!message) {
+      throw Error('Message not found');
+    }
+
+    const assets = await this.prisma.messageAsset.findMany({
+      where: {
+        messageId: messageId,
+      },
+    });
+
+    return assets;
+  }
 }

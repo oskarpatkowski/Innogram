@@ -60,6 +60,11 @@ export class AssetsController {
     return await this.assetsService.getByPostId(postId);
   }
 
+  @Get('/message/:messageId')
+  async getByMessageId(@Param('messageId') messageId: string) {
+    return await this.assetsService.getByMessageId(messageId);
+  }
+
   @Put(':id')
   @UseInterceptors(FileUploadInterceptor)
   @ApiConsumes('multipart/form-data')

@@ -7,11 +7,31 @@ import { PrismaService } from '../services/prisma.service';
 export class ChatsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  //TODO should probably add curent user to chat when creating
-  //will do after auth
-  async create(dto: CreateChatDto) {
+  async create(dto: CreateChatDto, creatorProfileId: string) {
+    const memberIds = [
+      ...new Set([...(dto.memberProfileIds || []), creatorProfileId]),
+    ];
+
+    const creator = await this.prisma.profile.findUnique({
+      where: { id: creatorProfileId },
+    });
+    if (!creator) {
+      throw new Error('Creator profile not found');
+    }
+
     const chat = await this.prisma.chat.create({
-      data: dto,
+      data: {
+        name: dto.name,
+        description: dto.description,
+        type: dto.type,
+        createdById: creator.userId,
+        participants: {
+          create: memberIds.map((profileId) => ({
+            profileId: profileId,
+            createdById: creator.userId,
+          })),
+        },
+      },
     });
     Logger.log(`Chat ${chat.id} created`, 'ChatsService');
     return chat;
@@ -42,6 +62,19 @@ export class ChatsService {
       Logger.log(`No chats found`, 'ChatsService');
     }
 
+    return chats;
+  }
+
+  async getChatsForProfile(profileId: string) {
+    const chats = await this.prisma.chat.findMany({
+      where: {
+        participants: {
+          some: {
+            profileId: profileId,
+          },
+        },
+      },
+    });
     return chats;
   }
 

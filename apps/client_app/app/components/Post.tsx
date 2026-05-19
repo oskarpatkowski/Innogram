@@ -40,6 +40,12 @@ export default function Post(postData: PostData) {
     const [comments, setComments] = useState<Comment[]>([]);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [commentsVisible, setCommentsVisible] = useState(false);
+    const [showCopiedPopup, setShowCopiedPopup] = useState(false);
+    const [isPopupFadingOut, setIsPopupFadingOut] = useState(false);
+
+    // For media cross-fade
+    const [isFading, setIsFading] = useState(false);
+    const [nextImageIndex, setNextImageIndex] = useState<number | null>(null);
 
     useEffect(() => {
         const fetchPostData = async () => {
@@ -73,15 +79,30 @@ export default function Post(postData: PostData) {
         }
     }, [postData.profileId, id]);
 
+    useEffect(() => {
+        if (isFading && nextImageIndex !== null) {
+            const timer = setTimeout(() => {
+                setCurrentImageIndex(nextImageIndex);
+                setIsFading(false);
+                setNextImageIndex(null);
+            }, 300); // Wait for the fade-out to finish
+            return () => clearTimeout(timer);
+        }
+    }, [isFading, nextImageIndex]);
+
     const handleNextImage = () => {
-        if (postAssets && postAssets.length > 0) {
-            setCurrentImageIndex((prevIndex) => (prevIndex + 1) % postAssets.length);
+        if (postAssets && postAssets.length > 0 && !isFading) {
+            const nextIndex = (currentImageIndex + 1) % postAssets.length;
+            setNextImageIndex(nextIndex);
+            setIsFading(true); // Start fade-out
         }
     };
 
     const handlePrevImage = () => {
-        if (postAssets && postAssets.length > 0) {
-            setCurrentImageIndex((prevIndex) => (prevIndex - 1 + postAssets.length) % postAssets.length);
+        if (postAssets && postAssets.length > 0 && !isFading) {
+            const nextIndex = (currentImageIndex - 1 + postAssets.length) % postAssets.length;
+            setNextImageIndex(nextIndex);
+            setIsFading(true); // Start fade-out
         }
     };
 
@@ -108,16 +129,28 @@ export default function Post(postData: PostData) {
     }
 
     const handleShare = () => {
-
+        navigator.clipboard.writeText(`${window.location.origin}/app/posts/${id}`);
+        setShowCopiedPopup(true);
+        setIsPopupFadingOut(false);
+        setTimeout(() => {
+            setIsPopupFadingOut(true);
+            setTimeout(() => {
+                setShowCopiedPopup(false);
+                setIsPopupFadingOut(false);
+            }, 300); // Wait for fade-out animation to complete
+        }, 2000); // Start fade-out after 2 seconds
     }
-
 
     const currentAsset = postAssets?.length > 0
         ? postAssets[currentImageIndex].asset
         : null;
 
+    const nextAsset = nextImageIndex !== null && postAssets?.length > 0
+        ? postAssets[nextImageIndex].asset
+        : null;
+
     return (
-        <div className="max-w-[470px] w-full mx-auto bg-white border-b border-gray-200 pb-2 mb-6 font-sans text-sm text-black">
+        <div className="max-w-[470px] w-full mx-auto bg-white border-b border-gray-200 pb-2 mb-6 font-sans text-sm text-black relative">
 
             <div className="flex items-center justify-between p-3">
                 <div className="flex items-center gap-2">
@@ -133,7 +166,7 @@ export default function Post(postData: PostData) {
                                 ) : (
                                     <div className="w-24 h-24 sm:w-36 sm:h-36 rounded-full bg-gray-100 border border-gray-200 p-1 flex items-center justify-center">
                                       <span className="text-gray-500 text-4xl sm:text-6xl font-light uppercase">
-                                        {userData?.displayName ? userData?.displayName[0] : userData?.username[0]}
+                                        {userData?.displayName ? userData?.displayName[0] : userData?.username?.[0]}
                                       </span>
                                     </div>
                                 )
@@ -152,32 +185,67 @@ export default function Post(postData: PostData) {
             </div>
 
             {currentAsset && (
-                <div className="relative w-full aspect-square bg-black border-y border-gray-100 flex items-center justify-center">
-                    {currentAsset.fileType.startsWith('video/') ? (
-                        <video
-                            src={currentAsset.filePath}
-                            className="w-full h-full object-cover"
-                            controls
-                            autoPlay
-                            muted
-                            loop
-                        />
-                    ) : (
-                        <img
-                            src={currentAsset.filePath}
-                            alt="Post content"
-                            className="w-full h-full object-cover"
-                        />
+                <div className="relative w-full aspect-square bg-black border-y border-gray-100 flex items-center justify-center overflow-hidden">
+
+                    {/* Next Asset (Bottom Layer) */}
+                    {nextAsset && (
+                        <div className="absolute inset-0 z-0">
+                            {nextAsset.fileType.startsWith('video/') ? (
+                                <video
+                                    src={nextAsset.filePath}
+                                    className="w-full h-full object-cover"
+                                    controls
+                                    autoPlay
+                                    muted
+                                    loop
+                                />
+                            ) : (
+                                <img
+                                    src={nextAsset.filePath}
+                                    alt="Next Post content"
+                                    className="w-full h-full object-cover"
+                                />
+                            )}
+                        </div>
                     )}
+
+                    {/* Current Asset (Top Layer, fading out) */}
+                    {/* FIX: Transition duration changes to 0s instantly when isFading is false to prevent flash fade-in */}
+                    <div className={`absolute inset-0 z-10 transition-opacity ${isFading ? 'duration-300 opacity-0' : 'duration-0 opacity-100'}`}>
+                        {currentAsset.fileType.startsWith('video/') ? (
+                            <video
+                                src={currentAsset.filePath}
+                                className="w-full h-full object-cover"
+                                controls
+                                autoPlay
+                                muted
+                                loop
+                            />
+                        ) : (
+                            <img
+                                src={currentAsset.filePath}
+                                alt="Post content"
+                                className="w-full h-full object-cover"
+                            />
+                        )}
+                    </div>
 
                     {postAssets && postAssets.length > 1 && (
                         <>
-                            <button onClick={handlePrevImage} className="absolute left-2 bg-white/80 rounded-full p-1.5 shadow-sm z-10">
+                            <button onClick={handlePrevImage} className="absolute left-2 bg-white/80 hover:bg-white transition-colors rounded-full p-1.5 shadow-sm z-30">
                                 <svg fill="currentColor" height="16" viewBox="0 0 24 24" width="16"><path d="M15.41 16.59 10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"></path></svg>
                             </button>
-                            <button onClick={handleNextImage} className="absolute right-2 bg-white/80 rounded-full p-1.5 shadow-sm z-10">
+                            <button onClick={handleNextImage} className="absolute right-2 bg-white/80 hover:bg-white transition-colors rounded-full p-1.5 shadow-sm z-30">
                                 <svg fill="currentColor" height="16" viewBox="0 0 24 24" width="16"><path d="M8.59 16.59 13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"></path></svg>
                             </button>
+                            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-30">
+                                {postAssets.map((_, index) => (
+                                    <span
+                                        key={index}
+                                        className={`h-2 w-2 rounded-full transition-colors duration-300 ${(isFading ? nextImageIndex : currentImageIndex) === index ? 'bg-white' : 'bg-white/40'}`}
+                                    ></span>
+                                ))}
+                            </div>
                         </>
                     )}
                 </div>
@@ -196,12 +264,21 @@ export default function Post(postData: PostData) {
                                 stroke={isLikedByCurrentUser() ? "black" : "currentColor"}
                                 strokeWidth="2"
                             ></path>
-                        </svg>                    </button>
+                        </svg>
+                    </button>
                     <button
                         className="hover:opacity-60 transition-opacity"
                         onClick={handleCommentsVisible}
                     >
-                        <svg aria-label="Comment" fill="currentColor" height="24" viewBox="0 0 24 24" width="24"><path d="M20.656 17.008a9.993 9.993 0 1 0-3.59 3.615L22 22Z" fill="none" stroke="currentColor" strokeLinejoin="round" strokeWidth="2"></path></svg>
+                        <svg aria-label="Comment" fill="currentColor" height="24" viewBox="0 0 24 24" width="24">
+                            <path
+                                d="M20.656 17.008a9.993 9.993 0 1 0-3.59 3.615L22 22Z"
+                                fill={commentsVisible ? "black" : "none"}
+                                stroke={commentsVisible ? "black" : "currentColor"}
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                            ></path>
+                        </svg>
                     </button>
                     <button
                         className="hover:opacity-60 transition-opacity"
@@ -232,10 +309,7 @@ export default function Post(postData: PostData) {
 
             {comments.length > 0 && (
                 <div className="px-3 mb-2">
-                    <div className="text-[#737373] mb-1 cursor-pointer">
-                        View all {comments.length} comments
-                    </div>
-                    {comments.slice(0, 2).map((comment) => (
+                    {(commentsVisible ? comments : comments.slice(0, 2)).map((comment) => (
                         <CommentComponent key={comment.id} comment={comment} />
                     ))}
                 </div>
@@ -249,6 +323,13 @@ export default function Post(postData: PostData) {
                     className="w-full outline-none text-sm placeholder-[#737373] text-black"
                 />
             </div>
+
+            {/* Copy to clipboard popup */}
+            {showCopiedPopup && (
+                <div className={`absolute bottom-4 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs px-3 py-1.5 rounded-md shadow-lg ${isPopupFadingOut ? 'animate-fade-out' : 'animate-fade-in'}`}>
+                    Link copied to clipboard!
+                </div>
+            )}
         </div>
     );
 }

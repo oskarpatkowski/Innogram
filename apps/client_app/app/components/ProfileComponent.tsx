@@ -280,6 +280,9 @@ export function UserProfile({ profileId }: UserProfileProps) {
                             ref={isLastElement ? lastPostElementRef : undefined}
                             key={post.id}
                             className="aspect-square bg-gray-200 relative group overflow-hidden cursor-pointer hover:blur-xs transition-all"
+                            onClick={() => {
+                                window.location.href = `/app/posts/${post.id}`;
+                            }}
                         >
                             {post.postAssets && post.postAssets.length > 0 ? (
                                 post.postAssets[0].asset.fileType.startsWith("video/") ? (

@@ -35,9 +35,11 @@ function CommentComponent({ comment }: { comment: Comment }) {
 export default function Post(postData: PostData) {
     const { id, content, postAssets } = postData;
     const [userData, setUserData] = useState<ProfileData>();
+    const [currentUserData, setCurrentUserData] = useState<ProfileData>();
     const [likes, setLikes] = useState<Like[]>([]);
     const [comments, setComments] = useState<Comment[]>([]);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    const [commentsVisible, setCommentsVisible] = useState(false);
 
     useEffect(() => {
         const fetchPostData = async () => {
@@ -45,20 +47,22 @@ export default function Post(postData: PostData) {
                 const [
                     userDataResponse,
                     likesResponse,
-                    commentsResponse
+                    commentsResponse,
+                    currentUserDataResponse
                 ] = await Promise.all([
                     apiClient.get(`profiles/${postData.profileId}`),
                     apiClient.get(`posts/${id}/likes`),
-                    apiClient.get(`comments/post/${id}`)
+                    apiClient.get(`comments/post/${id}`),
+                    apiClient.get('profiles/me')
                 ]);
                 setUserData(userDataResponse.data);
                 setLikes(likesResponse.data);
+                setCurrentUserData(currentUserDataResponse.data);
                 const commentsWithProfiles = await Promise.all(commentsResponse.data.map(async (comment: Comment) => {
                     const profileResponse = await apiClient.get(`profiles/${comment.profileId}`);
                     return { ...comment, profile: profileResponse.data };
                 }));
                 setComments(commentsWithProfiles);
-                console.log(postData.postAssets)
             } catch (error) {
                 console.error("Failed to fetch post data", error);
             }
@@ -80,6 +84,33 @@ export default function Post(postData: PostData) {
             setCurrentImageIndex((prevIndex) => (prevIndex - 1 + postAssets.length) % postAssets.length);
         }
     };
+
+    const isLikedByCurrentUser = () => {
+        return likes.some((like) => like.profileId === currentUserData?.id)
+    }
+
+    const handleLike = async () => {
+        try {
+            if (isLikedByCurrentUser()) {
+                await apiClient.delete(`posts/${id}/like`);
+            } else {
+                await apiClient.post(`posts/${id}/like`);
+            }
+            const likesResponse = await apiClient.get(`posts/${id}/likes`);
+            setLikes(likesResponse.data);
+        } catch {
+            console.error('failed to like post')
+        }
+    }
+
+    const handleCommentsVisible = () => {
+        setCommentsVisible(!commentsVisible)
+    }
+
+    const handleShare = () => {
+
+    }
+
 
     const currentAsset = postAssets?.length > 0
         ? postAssets[currentImageIndex].asset
@@ -154,13 +185,28 @@ export default function Post(postData: PostData) {
 
             <div className="flex justify-between items-center px-3 py-2 mt-1">
                 <div className="flex gap-4 items-center">
-                    <button className="hover:opacity-60 transition-opacity">
-                        <svg aria-label="Like" fill="currentColor" height="24" viewBox="0 0 24 24" width="24"><path d="M16.792 3.904A4.989 4.989 0 0 1 21.5 9.122c0 3.072-2.652 4.959-5.197 7.222-2.512 2.243-3.865 3.469-4.303 3.752-.477-.309-2.143-1.823-4.303-3.752C5.141 14.072 2.5 12.167 2.5 9.122a4.989 4.989 0 0 1 4.708-5.218 4.21 4.21 0 0 1 3.675 1.941c.84 1.174 1.18 1.815 1.18 1.815l.004-.002.004.002s.34-.641 1.18-1.815a4.21 4.21 0 0 1 3.675-1.941" fill="none" stroke="currentColor" strokeWidth="2"></path></svg>
-                    </button>
-                    <button className="hover:opacity-60 transition-opacity">
+                    <button
+                        className="hover:opacity-60 transition-opacity"
+                        onClick={handleLike}
+                    >
+                        <svg aria-label="Like" height="24" viewBox="0 0 24 24" width="24">
+                            <path
+                                d="M16.792 3.904A4.989 4.989 0 0 1 21.5 9.122c0 3.072-2.652 4.959-5.197 7.222-2.512 2.243-3.865 3.469-4.303 3.752-.477-.309-2.143-1.823-4.303-3.752C5.141 14.072 2.5 12.167 2.5 9.122a4.989 4.989 0 0 1 4.708-5.218 4.21 4.21 0 0 1 3.675 1.941c.84 1.174 1.18 1.815 1.18 1.815l.004-.002.004.002s.34-.641 1.18-1.815a4.21 4.21 0 0 1 3.675-1.941"
+                                fill={isLikedByCurrentUser() ? "black" : "none"}
+                                stroke={isLikedByCurrentUser() ? "black" : "currentColor"}
+                                strokeWidth="2"
+                            ></path>
+                        </svg>                    </button>
+                    <button
+                        className="hover:opacity-60 transition-opacity"
+                        onClick={handleCommentsVisible}
+                    >
                         <svg aria-label="Comment" fill="currentColor" height="24" viewBox="0 0 24 24" width="24"><path d="M20.656 17.008a9.993 9.993 0 1 0-3.59 3.615L22 22Z" fill="none" stroke="currentColor" strokeLinejoin="round" strokeWidth="2"></path></svg>
                     </button>
-                    <button className="hover:opacity-60 transition-opacity">
+                    <button
+                        className="hover:opacity-60 transition-opacity"
+                        onClick={handleShare}
+                    >
                         <svg aria-label="Share" fill="none" height="24" viewBox="0 0 24 24" width="24" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2">
                             <line x1="22" y1="2" x2="11" y2="13"></line>
                             <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>

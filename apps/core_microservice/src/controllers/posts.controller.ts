@@ -137,6 +137,11 @@ export class PostsController {
     return await this.postsService.getById(id);
   }
 
+  @Get(':id/likes')
+  async getLikes(@Param('id') id: string) {
+    return await this.postsService.getLikes(id);
+  }
+
   @ApiQuery({
     name: 'lastCursor',
     required: false,

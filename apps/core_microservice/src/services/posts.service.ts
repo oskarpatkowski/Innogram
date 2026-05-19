@@ -108,6 +108,13 @@ export class PostsService {
           },
         },
       },
+      include: {
+        postAssets: {
+          include: {
+            asset: true,
+          },
+        },
+      },
       orderBy: {
         createdAt: 'desc',
       },
@@ -149,6 +156,13 @@ export class PostsService {
     const post = await this.prisma.post.findUnique({
       where: {
         id,
+      },
+      include: {
+        postAssets: {
+          include: {
+            asset: true,
+          },
+        },
       },
     });
 
@@ -346,6 +360,13 @@ export class PostsService {
           in: followingProfileIds,
         },
       },
+      include: {
+        postAssets: {
+          include: {
+            asset: true,
+          },
+        },
+      },
       orderBy: {
         createdAt: 'desc',
       },
@@ -398,6 +419,13 @@ export class PostsService {
       where: {
         content: {
           contains: query,
+        },
+      },
+      include: {
+        postAssets: {
+          include: {
+            asset: true,
+          },
         },
       },
     });

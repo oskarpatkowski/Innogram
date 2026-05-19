@@ -173,6 +173,13 @@ export class PostsService {
       where: {
         profileId: profileId,
       },
+      include: {
+        postAssets: {
+          include: {
+            asset: true,
+          },
+        },
+      },
       orderBy: {
         createdAt: 'desc',
       },

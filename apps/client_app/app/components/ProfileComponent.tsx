@@ -19,6 +19,17 @@ export interface ProfileData {
     updatedById: string | null;
 }
 
+export interface Asset {
+    id: string;
+    filePath: string;
+    fileType: string;
+}
+
+export interface PostAsset {
+    id: string;
+    asset: Asset;
+}
+
 export interface PostData {
     id: string;
     profileId: string;
@@ -28,6 +39,7 @@ export interface PostData {
     createdById: string;
     updatedAt: Date;
     updatedById: string | null;
+    postAssets: PostAsset[];
 }
 
 interface UserProfileProps {
@@ -209,12 +221,19 @@ export function UserProfile({ profileId }: UserProfileProps) {
                             key={post.id}
                             className="aspect-square bg-gray-200 relative group overflow-hidden cursor-pointer"
                         >
-                            {post.content.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
-                                <img
-                                    src={post.content}
-                                    alt="Post content"
-                                    className="w-full h-full object-cover"
-                                />
+                            {post.postAssets && post.postAssets.length > 0 ? (
+                                post.postAssets[0].asset.fileType.startsWith("video/") ? (
+                                    <video
+                                        src={post.postAssets[0].asset.filePath}
+                                        className="w-full h-full object-cover"
+                                    />
+                                ) : (
+                                    <img
+                                        src={post.postAssets[0].asset.filePath}
+                                        alt="Post content"
+                                        className="w-full h-full object-cover"
+                                    />
+                                )
                             ) : (
                                 <div className="w-full h-full p-2 flex items-center justify-center text-center text-xs sm:text-sm text-gray-800 break-words bg-gray-100">
                                     {post.content.length > 100 ? `${post.content.substring(0, 100)}...` : post.content}

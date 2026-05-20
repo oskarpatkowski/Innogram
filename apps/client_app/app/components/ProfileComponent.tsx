@@ -98,9 +98,7 @@ export function UserProfile({ profileId }: UserProfileProps) {
         fetchProfileData();
     }, [profileId]);
 
-    // 2. INITIAL FETCH: Runs only when profileId or activeTab changes
     useEffect(() => {
-        // 'ignore' prevents race conditions if the user rapidly clicks between tabs
         let ignore = false;
 
         const loadInitialPosts = async () => {
@@ -134,11 +132,9 @@ export function UserProfile({ profileId }: UserProfileProps) {
 
         loadInitialPosts();
 
-        // Cleanup function for rapid tab switching
         return () => { ignore = true; };
     }, [profileId, activeTab]);
 
-    // 3. PAGINATION FETCH: Handled entirely separate from the synchronization effect
     const loadMorePosts = useCallback(async () => {
         if (!hasNextPage || isPostsLoading || !nextCursor) return;
 
@@ -172,7 +168,6 @@ export function UserProfile({ profileId }: UserProfileProps) {
         }
     }, [activeTab, profileId, hasNextPage, isPostsLoading, nextCursor]);
 
-    // 4. OBSERVER: Triggers the pagination
     const lastPostElementRef = useCallback((node: HTMLDivElement | null) => {
         if (isPostsLoading) return;
         if (observer.current) observer.current.disconnect();

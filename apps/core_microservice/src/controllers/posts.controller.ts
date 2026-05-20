@@ -110,11 +110,17 @@ export class PostsController {
     @Req() request: AuthenticatedRequest,
     @Query('take', new DefaultValuePipe(10), ParseIntPipe) take: number,
     @Query('lastCursor') lastCursor?: string,
+    @Query('ascOrDesc') ascOrDesc?: 'asc' | 'desc',
+    @Query('by') by?: 'createdAt' | 'likes',
+    @Query('timeframe') timeframe?: 'day' | 'week' | 'month' | 'year' | 'all',
   ) {
     return await this.postsService.getFeed(
       request.user.profileId,
       take,
       lastCursor,
+      ascOrDesc,
+      by,
+      timeframe,
     );
   }
 
@@ -130,6 +136,20 @@ export class PostsController {
     @Query('lastCursor') lastCursor?: string,
   ) {
     return await this.postsService.search(query, take, lastCursor);
+  }
+
+  @ApiQuery({
+    name: 'lastCursor',
+    required: false,
+    type: String,
+  })
+  @Get('/popular')
+  async getPopular(
+    @Query('take', new DefaultValuePipe(10), ParseIntPipe) take: number,
+    @Query('lastCursor') lastCursor?: string,
+    @Query('timeframe') timeframe?: 'day' | 'week' | 'month' | 'year' | 'all',
+  ) {
+    return await this.postsService.getPopular(take, lastCursor, timeframe);
   }
 
   @Get(':id')

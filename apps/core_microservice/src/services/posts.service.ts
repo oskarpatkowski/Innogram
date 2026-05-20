@@ -288,17 +288,48 @@ export class PostsService {
     };
   }
 
-  async update(id: string, postDto: UpdatePostDto) {
-    const post = await this.prisma.post.update({
-      where: {
-        id,
-      },
-      data: postDto,
+  async update(id: string, postDto: UpdatePostDto, userId: string) {
+    return this.prisma.$transaction(async (prisma) => {
+      const post = await prisma.post.update({
+        where: { id },
+        data: { content: postDto.content },
+      });
+
+      const existingAssets = await prisma.postAsset.findMany({
+        where: { postId: id },
+      });
+      const existingAssetIds = existingAssets.map((asset) => asset.assetId);
+      const newAssetIds = postDto.assetIds || [];
+
+      const assetsToDelete = existingAssetIds.filter(
+        (assetId) => !newAssetIds.includes(assetId),
+      );
+      const assetsToAdd = newAssetIds.filter(
+        (assetId) => !existingAssetIds.includes(assetId),
+      );
+
+      if (assetsToDelete.length > 0) {
+        await prisma.postAsset.deleteMany({
+          where: {
+            postId: id,
+            assetId: { in: assetsToDelete },
+          },
+        });
+      }
+
+      if (assetsToAdd.length > 0) {
+        await prisma.postAsset.createMany({
+          data: assetsToAdd.map((assetId) => ({
+            postId: id,
+            assetId: assetId,
+            createdById: userId,
+          })),
+        });
+      }
+
+      Logger.log(`Post ${post.id} updated`, 'PostsService');
+      return post;
     });
-
-    Logger.log(`Post ${post.id} updated`, 'PostsService');
-
-    return post;
   }
 
   async delete(id: string) {

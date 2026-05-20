@@ -176,7 +176,7 @@ export class PostsController {
       throw new Error('Unauthorized');
     }
 
-    return await this.postsService.update(id, postDto);
+    return await this.postsService.update(id, postDto, request.user.userId);
   }
 
   @Post(':id/like')

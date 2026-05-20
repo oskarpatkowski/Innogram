@@ -408,7 +408,6 @@ export default function EditProfile() {
                 </div>
             </form>
 
-            {/* Restored Delete Button Styling */}
             <div className='flex flex-row mt-2'>
                 <div className="flex-1"></div>
                 <button

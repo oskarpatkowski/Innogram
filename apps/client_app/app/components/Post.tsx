@@ -315,7 +315,6 @@ export default function Post(postData: PostData) {
                 </div>
             )}
 
-            {/* Add Comment Input */}
             <div className="px-3 flex items-center justify-between mt-3 text-[#737373]">
                 <input
                     type="text"
@@ -324,7 +323,6 @@ export default function Post(postData: PostData) {
                 />
             </div>
 
-            {/* Copy to clipboard popup */}
             {showCopiedPopup && (
                 <div className={`absolute bottom-4 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs px-3 py-1.5 rounded-md shadow-lg ${isPopupFadingOut ? 'animate-fade-out' : 'animate-fade-in'}`}>
                     Link copied to clipboard!

@@ -26,6 +26,31 @@ export class ProfileController {
     return await this.profileService.create(profileDto);
   }
 
+  @Get('/following/:id')
+  async getFollowingById(@Param('id') id: string) {
+    return await this.profileService.getFollowing(id);
+  }
+
+  @Get('/followers/:id')
+  async getFollowersById(@Param('id') id: string) {
+    return await this.profileService.getFollowers(id);
+  }
+
+  @Get('/following')
+  async getFollowing(@Req() request: AuthenticatedRequest) {
+    return await this.profileService.getFollowing(request.user.profileId);
+  }
+
+  @Get('/followers')
+  async getFollowers(@Req() request: AuthenticatedRequest) {
+    return await this.profileService.getFollowers(request.user.profileId);
+  }
+
+  @Get('/me')
+  async getMe(@Req() request: AuthenticatedRequest) {
+    return await this.profileService.getById(request.user.profileId);
+  }
+
   @Get('/username/:username')
   async getIdByUsername(@Param('username') username: string) {
     return await this.profileService.getIdByUsername(username);
@@ -34,31 +59,6 @@ export class ProfileController {
   @Get('/follow-requests')
   async getFollowRequests(@Req() request: AuthenticatedRequest) {
     return await this.profileService.getFollowRequests(request.user.profileId);
-  }
-
-  @Get('/me')
-  async getMe(@Req() request: AuthenticatedRequest) {
-    return await this.profileService.getById(request.user.profileId);
-  }
-
-  @Get('/followers')
-  async getFollowers(@Req() request: AuthenticatedRequest) {
-    return await this.profileService.getFollowers(request.user.profileId);
-  }
-
-  @Get('/following')
-  async getFollowing(@Req() request: AuthenticatedRequest) {
-    return await this.profileService.getFollowing(request.user.profileId);
-  }
-
-  @Get('/followers/:id')
-  async getFollowersById(@Param('id') id: string) {
-    return await this.profileService.getFollowers(id);
-  }
-
-  @Get('/following/:id')
-  async getFollowingById(@Param('id') id: string) {
-    return await this.profileService.getFollowing(id);
   }
 
   @Get(':id')

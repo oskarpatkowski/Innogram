@@ -1,11 +1,26 @@
 "use client";
 
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAppContext } from "@/app/state/AppContext";
+import { apiClient } from "@/apiClient";
 
 export default function AccountLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
+    const [isPrivate, setIsPrivate] = useState<boolean | null>(null);
+
+    useEffect(() => {
+        const fetchProfile = async () => {
+            try {
+                const { data } = await apiClient.get('/profiles/me');
+                setIsPrivate(!data.isPublic);
+            } catch (error) {
+                console.error("Failed to fetch profile in layout", error);
+            }
+        };
+        fetchProfile();
+    }, []);
 
     const getLinkStyle = (path: string, exact: boolean = false) => {
         const normalizedPathname = pathname.endsWith('/') && pathname !== '/' ? pathname.slice(0, -1) : pathname;
@@ -47,13 +62,15 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
                         <span className="material-symbols-outlined text-2xl">manage_accounts</span>
                         <span className="text-lg">Edit</span>
                     </Link>
-                    <Link
-                        href={'/app/profile/me/follow-requests'}
-                        className={getLinkStyle('/app/profile/me/follow-requests')}
-                    >
-                        <span className="material-symbols-outlined text-2xl">group_add</span>
-                        <span className="text-lg">Follow requests</span>
-                    </Link>
+                    {isPrivate && (
+                        <Link
+                            href={'/app/profile/me/follow-requests'}
+                            className={getLinkStyle('/app/profile/me/follow-requests')}
+                        >
+                            <span className="material-symbols-outlined text-2xl">group_add</span>
+                            <span className="text-lg">Follow requests</span>
+                        </Link>
+                    )}
                     <Link
                         href={'/app/profile/me/followers'}
                         className={getLinkStyle('/app/profile/me/followers')}

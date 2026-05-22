@@ -137,7 +137,10 @@ export default function EditProfile() {
             await apiClient.put(`/profiles/${profile.id}`, formData);
             setSaveMessage("Profile saved successfully.");
 
-            setTimeout(() => setSaveMessage(""), 3000);
+            setTimeout(() => {
+                setSaveMessage("");
+                window.location.reload();
+            }, 500);
         } catch (e) {
             console.error(e);
             setSaveMessage("Failed to save profile.");
@@ -173,7 +176,10 @@ export default function EditProfile() {
             }
 
             setSaveMessage("Profile picture updated!");
-            setTimeout(() => setSaveMessage(""), 3000);
+            setTimeout(() => {
+                setSaveMessage("");
+                window.location.reload();
+            }, 1500);
         } catch (error) {
             console.error(error);
             setSaveMessage("Failed to upload picture.");

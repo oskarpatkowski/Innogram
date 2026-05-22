@@ -46,8 +46,12 @@ interface UserProfileProps {
     profileId?: string;
 }
 
+
 export function UserProfile({ profileId }: UserProfileProps) {
     const [profile, setProfile] = useState<ProfileData | null>(null);
+    const [currentUser, setCurrentUser] = useState<ProfileData | null>(null);
+    const [isFollowing, setIsFollowing] = useState(false);
+    const [isFollowActionLoading, setIsFollowActionLoading] = useState(false);
     const [posts, setPosts] = useState<PostData[]>([]);
     const [stats, setStats] = useState({ followers: 0, following: 0, posts: 0 });
     const [isLoadingProfile, setIsLoadingProfile] = useState(true);
@@ -58,11 +62,13 @@ export function UserProfile({ profileId }: UserProfileProps) {
 
     const observer = useRef<IntersectionObserver>(null);
 
-    // 1. Handle profile meta data queries
     useEffect(() => {
-        const fetchProfileData = async () => {
+        const fetchInitialData = async () => {
             setIsLoadingProfile(true);
             try {
+                const { data: meData } = await apiClient.get("/profiles/me");
+                setCurrentUser(meData);
+
                 const profileRoute = profileId ? `/profiles/${profileId}` : "/profiles/me";
                 const { data: profileData } = await apiClient.get(profileRoute);
                 setProfile(profileData);
@@ -73,11 +79,18 @@ export function UserProfile({ profileId }: UserProfileProps) {
                 let followingCount = 0;
                 try {
                     const followersRes = await apiClient.get(
-                        profileId ? `/profiles/followers/${currentProfileId}` : "/profiles/followers"
+                        `/profiles/followers/${currentProfileId}`
                     );
                     followersCount = followersRes.data?.length || 0;
 
-                    const followingRes = await apiClient.get("/profiles/following");
+                    if (profileId && meData) {
+                        const isUserFollowing = followersRes.data.some((follower: ProfileData) => follower.id === meData.id);
+                        setIsFollowing(isUserFollowing);
+                    }
+
+                    const followingRes = await apiClient.get(
+                        `/profiles/following/${currentProfileId}`
+                    );
                     followingCount = followingRes.data?.length || 0;
                 } catch (e) {
                     console.warn("Could not fetch connection stats", e);
@@ -95,7 +108,7 @@ export function UserProfile({ profileId }: UserProfileProps) {
             }
         };
 
-        fetchProfileData();
+        fetchInitialData();
     }, [profileId]);
 
     useEffect(() => {
@@ -168,6 +181,34 @@ export function UserProfile({ profileId }: UserProfileProps) {
         }
     }, [activeTab, profileId, hasNextPage, isPostsLoading, nextCursor]);
 
+    const handleFollow = async () => {
+        if (!profileId || isFollowActionLoading) return;
+        setIsFollowActionLoading(true);
+        try {
+            await apiClient.post(`/profiles/follow/${profileId}`);
+            setIsFollowing(true);
+            setStats(prev => ({ ...prev, followers: prev.followers + 1 }));
+        } catch (error) {
+            console.error("Failed to follow user", error);
+        } finally {
+            setIsFollowActionLoading(false);
+        }
+    };
+
+    const handleUnfollow = async () => {
+        if (!profileId || isFollowActionLoading) return;
+        setIsFollowActionLoading(true);
+        try {
+            await apiClient.delete(`/profiles/unfollow/${profileId}`);
+            setIsFollowing(false);
+            setStats(prev => ({ ...prev, followers: prev.followers - 1 }));
+        } catch (error) {
+            console.error("Failed to unfollow user", error);
+        } finally {
+            setIsFollowActionLoading(false);
+        }
+    };
+
     const lastPostElementRef = useCallback((node: HTMLDivElement | null) => {
         if (isPostsLoading) return;
         if (observer.current) observer.current.disconnect();
@@ -236,6 +277,30 @@ export function UserProfile({ profileId }: UserProfileProps) {
                             {profile.isPublic ? "Public Account" : "Private Account"}
                         </p>
                         <p className="whitespace-pre-wrap mt-1">{profile.bio}</p>
+                    </div>
+
+                    <div className="flex mt-4">
+                        {currentUser && profile && currentUser.id !== profile.id && (
+                            <>
+                                {isFollowing ? (
+                                    <button
+                                        onClick={handleUnfollow}
+                                        disabled={isFollowActionLoading}
+                                        className="px-4 py-1 bg-gray-200 text-gray-800 rounded font-semibold disabled:opacity-50"
+                                    >
+                                        Unfollow
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={handleFollow}
+                                        disabled={isFollowActionLoading}
+                                        className="px-4 py-1 bg-blue-500 text-white rounded font-semibold disabled:opacity-50"
+                                    >
+                                        Follow
+                                    </button>
+                                )}
+                            </>
+                        )}
                     </div>
                 </div>
             </header>

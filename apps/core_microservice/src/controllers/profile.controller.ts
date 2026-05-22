@@ -26,6 +26,11 @@ export class ProfileController {
     return await this.profileService.create(profileDto);
   }
 
+  @Get('/username/:username')
+  async getIdByUsername(@Param('username') username: string) {
+    return await this.profileService.getIdByUsername(username);
+  }
+
   @Get('/follow-requests')
   async getFollowRequests(@Req() request: AuthenticatedRequest) {
     return await this.profileService.getFollowRequests(request.user.profileId);
@@ -49,6 +54,11 @@ export class ProfileController {
   @Get('/followers/:id')
   async getFollowersById(@Param('id') id: string) {
     return await this.profileService.getFollowers(id);
+  }
+
+  @Get('/following/:id')
+  async getFollowingById(@Param('id') id: string) {
+    return await this.profileService.getFollowing(id);
   }
 
   @Get(':id')

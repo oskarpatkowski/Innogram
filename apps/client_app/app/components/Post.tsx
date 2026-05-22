@@ -141,6 +141,12 @@ export default function Post(postData: PostData) {
         }, 2000); // Start fade-out after 2 seconds
     }
 
+    const handleUsernameClick = () => {
+        if (userData) {
+            window.location.href = `/app/profile/${userData.username}`
+        }
+    }
+
     const currentAsset = postAssets?.length > 0
         ? postAssets[currentImageIndex].asset
         : null;
@@ -174,7 +180,10 @@ export default function Post(postData: PostData) {
                         </div>
                     </div>
                     <div className="flex items-center">
-                        <span className="font-semibold cursor-pointer hover:text-gray-500">
+                        <span
+                            className="font-semibold cursor-pointer hover:text-gray-500"
+                            onClick={handleUsernameClick}
+                        >
                             {userData ? userData.username : "..."}
                         </span>
                         <span className="text-[#737373] ml-1">

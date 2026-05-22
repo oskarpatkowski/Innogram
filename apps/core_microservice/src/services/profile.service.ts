@@ -39,6 +39,23 @@ export class ProfileService {
     return profile;
   }
 
+  async getIdByUsername(username: string) {
+    const profiles = await this.prisma.profile.findUnique({
+      where: {
+        username: username,
+      },
+    });
+
+    if (profiles) {
+      Logger.log(`Profile ${profiles.id} found`, 'ProfileService');
+    } else {
+      Logger.log(`Profile ${username} not found`, 'ProfileService');
+      return null;
+    }
+
+    return profiles.id;
+  }
+
   async getAll() {
     const profiles = await this.prisma.profile.findMany();
 
@@ -92,7 +109,8 @@ export class ProfileService {
         'ProfileService',
       );
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       Logger.error(
         `Failed to revoke sessions for user ${userId}: ${errorMessage}`,
         'ProfileService',

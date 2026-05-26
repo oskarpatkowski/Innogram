@@ -8,6 +8,7 @@ import {
   processRefreshtoken,
   registerUser,
   validateToken,
+  revokeAllUserSessions,
 } from "../services/auth.js";
 
 export const register = async (registerUserDto: SignupDto) => {
@@ -48,4 +49,8 @@ export const oauthInitiate = async () => {
   return {
     url: googleAuthUrl,
   };
+};
+
+export const revokeAll = async (userId: string) => {
+  return await revokeAllUserSessions(userId);
 };

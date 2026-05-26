@@ -2,10 +2,14 @@ import { Injectable, Logger } from '@nestjs/common';
 import { CreateProfileDto } from '../../dto/create.profile.dto';
 import { UpdateProfileDto } from '../../dto/update.profile.dto';
 import { PrismaService } from './prisma.service';
+import { AuthService } from './auth.service';
 
 @Injectable()
 export class ProfileService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly authService: AuthService,
+  ) {}
 
   async create(dto: CreateProfileDto) {
     const profile = await this.prisma.profile.create({
@@ -16,6 +20,10 @@ export class ProfileService {
   }
 
   async getById(id: string) {
+    if (!id) {
+      Logger.error('Profile ID is undefined or null', 'ProfileService');
+      return null;
+    }
     const profile = await this.prisma.profile.findUnique({
       where: {
         id,
@@ -57,16 +65,38 @@ export class ProfileService {
   }
 
   async delete(id: string) {
-    const profile = await this.prisma.profile.delete({
+    const profile = await this.prisma.profile.findUnique({
+      where: { id },
+      include: { user: true },
+    });
+
+    if (!profile) {
+      Logger.log(`Profile ${id} not found`, 'ProfileService');
+      return null;
+    }
+
+    const userId = profile.userId;
+
+    await this.prisma.profile.delete({
       where: {
         id,
       },
     });
 
-    if (profile) {
-      Logger.log(`Profile ${profile.id} deleted`, 'ProfileService');
-    } else {
-      Logger.log(`Profile ${id} not found`, 'ProfileService');
+    Logger.log(`Profile ${id} deleted`, 'ProfileService');
+
+    try {
+      await this.authService.revokeAllSessions(userId);
+      Logger.log(
+        `All sessions revoked for user ${userId} after profile deletion`,
+        'ProfileService',
+      );
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      Logger.error(
+        `Failed to revoke sessions for user ${userId}: ${errorMessage}`,
+        'ProfileService',
+      );
     }
 
     return profile;

@@ -59,6 +59,38 @@ export class PostsController {
     required: false,
     type: String,
   })
+  @Get('/my/mentions')
+  async getMyMentions(
+    @Req() request: AuthenticatedRequest,
+    @Query('take', new DefaultValuePipe(10), ParseIntPipe) take: number,
+    @Query('lastCursor') lastCursor?: string,
+  ) {
+    return await this.postsService.getMentionedPosts(
+      request.user.profileId,
+      take,
+      lastCursor,
+    );
+  }
+
+  @ApiQuery({
+    name: 'lastCursor',
+    required: false,
+    type: String,
+  })
+  @Get('/:id/mentions')
+  async getMentions(
+    @Param('id') id: string,
+    @Query('take', new DefaultValuePipe(10), ParseIntPipe) take: number,
+    @Query('lastCursor') lastCursor?: string,
+  ) {
+    return await this.postsService.getMentionedPosts(id, take, lastCursor);
+  }
+
+  @ApiQuery({
+    name: 'lastCursor',
+    required: false,
+    type: String,
+  })
   @Get('/profile/:profileId')
   async getPostsByProfile(
     @Param('profileId') profileId: string,

@@ -2,7 +2,6 @@ import { HttpException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance } from 'axios';
 import { LoginDto } from '../../dto/login.dto';
-import { RefreshDto } from '../../dto/refresh.dto';
 import { SignupDto } from '../../dto/signup.dto';
 import { PrismaService } from '../services/prisma.service';
 
@@ -39,9 +38,13 @@ export interface tokensResponse {
   refreshToken: string;
 }
 
+export interface RevokeSessionsResponse {
+  message?: string;
+  success: boolean;
+}
+
 interface OAuthRequest {
   code: string;
-  ipAddress: string;
   userAgent: string;
 }
 
@@ -78,7 +81,7 @@ export class AuthService {
     );
   }
 
-  public async register(signupDto: SignupDto) {
+  public async register(signupDto: SignupDto, ipAddress: string) {
     Logger.log('Registering user', 'AuthService');
 
     const internalSignupDto: InternalSignupDto = {
@@ -87,7 +90,7 @@ export class AuthService {
       email: signupDto.email,
       birthday: signupDto.birthdate,
       bio: 'A short bio',
-      ipAddress: signupDto.ipAddress,
+      ipAddress,
       userAgent: signupDto.userAgent,
     };
 
@@ -99,12 +102,15 @@ export class AuthService {
     return response.data;
   }
 
-  public async login(loginDto: LoginDto) {
+  public async login(loginDto: LoginDto, ipAddress: string) {
     Logger.log(`Logging in user: ${loginDto.email}`, 'AuthService');
 
     const response = await this.axiosClient.post<tokensResponse>(
       '/internal/auth/login',
-      loginDto,
+      {
+        ...loginDto,
+        ipAddress,
+      },
     );
 
     return response.data;
@@ -119,16 +125,23 @@ export class AuthService {
         accessToken,
       },
     );
-    console.log(response.data);
     return response.data;
   }
 
-  public async refreshToken(refreshDto: RefreshDto) {
+  public async refreshToken(
+    refreshToken: string,
+    ipAddress: string,
+    userAgent: string,
+  ) {
     Logger.log('Refreshing token', 'AuthService');
 
     const response = await this.axiosClient.post<tokensResponse>(
       '/internal/auth/refresh',
-      refreshDto,
+      {
+        refreshToken,
+        ipAddress,
+        userAgent,
+      },
     );
 
     return response.data;
@@ -157,12 +170,34 @@ export class AuthService {
     return response.data;
   }
 
-  public async oAuthCallback(oAuthRequest: OAuthRequest, provider: string) {
+  public async oAuthCallback(
+    oAuthRequest: OAuthRequest,
+    provider: string,
+    ipAddress: string,
+  ) {
     Logger.log(`Callback from ${provider}`, 'AuthService');
 
     const response = await this.axiosClient.post<tokensResponse>(
       '/internal/auth/oauth/exchange-code',
-      oAuthRequest,
+      {
+        ...oAuthRequest,
+        ipAddress,
+      },
+    );
+
+    return response.data;
+  }
+
+  public async revokeAllSessions(
+    userId: string,
+  ): Promise<RevokeSessionsResponse> {
+    Logger.log(`Revoking all sessions for user: ${userId}`, 'AuthService');
+
+    const response = await this.axiosClient.post<RevokeSessionsResponse>(
+      '/internal/auth/revoke-all',
+      {
+        userId,
+      },
     );
 
     return response.data;

@@ -2,7 +2,10 @@ import {
   Body,
   Controller,
   Get,
+  Headers,
   HttpCode,
+  HttpException,
+  Ip,
   Param,
   Post,
   Query,
@@ -11,9 +14,12 @@ import {
 } from '@nestjs/common';
 import express from 'express';
 import { LoginDto } from '../../dto/login.dto';
-import { RefreshDto } from '../../dto/refresh.dto';
 import { SignupDto } from '../../dto/signup.dto';
-import { AuthService, TokenValidationResponse } from '../services/auth.service';
+import {
+  AppJwtPayload,
+  AuthService,
+  TokenValidationResponse,
+} from '../services/auth.service';
 
 @Controller('auth')
 export class AuthController {
@@ -22,9 +28,10 @@ export class AuthController {
   @Post('signup')
   public async handleSignUp(
     @Body() signupDto: SignupDto,
+    @Ip() ipAddress: string,
     @Res({ passthrough: true }) res: express.Response,
   ) {
-    const response = await this.authService.register(signupDto);
+    const response = await this.authService.register(signupDto, ipAddress);
     const { accessToken, refreshToken } = response;
 
     res.cookie('accessToken', accessToken, { httpOnly: true });
@@ -37,9 +44,10 @@ export class AuthController {
   @HttpCode(200)
   public async handleLogin(
     @Body() loginDto: LoginDto,
+    @Ip() ipAddress: string,
     @Res({ passthrough: true }) res: express.Response,
   ) {
-    const response = await this.authService.login(loginDto);
+    const response = await this.authService.login(loginDto, ipAddress);
     const { accessToken, refreshToken } = response;
 
     res.cookie('accessToken', accessToken, { httpOnly: true });
@@ -51,23 +59,46 @@ export class AuthController {
   @Post('validate')
   @HttpCode(200)
   public async handleValidate(
-    @Body('accessToken') accessToken: string,
+    @Req() req: express.Request,
+    @Body('accessToken') bodyAccessToken?: string,
   ): Promise<TokenValidationResponse> {
-    return await this.authService.validateToken(accessToken);
+    const cookieToken = req.cookies?.['accessToken'] as string | undefined;
+    const token = bodyAccessToken || cookieToken;
+
+    if (!token) {
+      return { isValid: false, tokenPayload: {} as AppJwtPayload };
+    }
+    try {
+      return await this.authService.validateToken(token);
+    } catch {
+      return { isValid: false, tokenPayload: {} as AppJwtPayload };
+    }
   }
 
   @Post('refresh')
   @HttpCode(200)
   public async handleRefresh(
-    @Body() refreshDto: RefreshDto,
+    @Req() req: express.Request,
+    @Ip() ipAddress: string,
+    @Headers('user-agent') userAgent: string,
     @Res({ passthrough: true }) res: express.Response,
   ) {
+    const refreshToken = req.cookies?.['refreshToken'] as string | undefined;
+
+    if (!refreshToken) {
+      throw new HttpException('No refresh token provided', 401);
+    }
+
     try {
-      const response = await this.authService.refreshToken(refreshDto);
-      const { accessToken, refreshToken } = response;
+      const response = await this.authService.refreshToken(
+        refreshToken,
+        ipAddress,
+        userAgent || '',
+      );
+      const { accessToken, refreshToken: newRefreshToken } = response;
 
       res.cookie('accessToken', accessToken, { httpOnly: true });
-      res.cookie('refreshToken', refreshToken, { httpOnly: true });
+      res.cookie('refreshToken', newRefreshToken, { httpOnly: true });
 
       return response;
     } catch (error) {
@@ -83,9 +114,7 @@ export class AuthController {
     @Req() req: express.Request,
     @Res({ passthrough: true }) res: express.Response,
   ) {
-    const refreshToken: string | undefined = req.cookies?.[
-      'refreshToken'
-    ] as string;
+    const refreshToken = req.cookies?.['refreshToken'] as string | undefined;
     res.clearCookie('accessToken');
     res.clearCookie('refreshToken');
     if (refreshToken) {
@@ -111,22 +140,26 @@ export class AuthController {
   @Get(':provider/callback')
   public async handleOAuthCallback(
     @Param('provider') provider: string,
-    @Query('ipaddress') ipaddress: string,
     @Query('useragent') useragent: string,
     @Query('code') code: string,
+    @Ip() ipAddress: string,
     @Res({ passthrough: true }) res: express.Response,
   ) {
     const request = {
       code,
-      ipAddress: ipaddress,
       userAgent: useragent,
     };
-    const response = await this.authService.oAuthCallback(request, provider);
+    const response = await this.authService.oAuthCallback(
+      request,
+      provider,
+      ipAddress,
+    );
     const { accessToken, refreshToken } = response;
 
     res.cookie('accessToken', accessToken, { httpOnly: true });
     res.cookie('refreshToken', refreshToken, { httpOnly: true });
 
-    return response;
+    const clientUrl = process.env.CLIENT_URL || 'http://localhost:3001';
+    return res.redirect(`${clientUrl}/`);
   }
 }

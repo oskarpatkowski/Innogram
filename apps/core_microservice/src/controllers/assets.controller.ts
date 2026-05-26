@@ -35,6 +35,9 @@ export class AssetsController {
     @UploadedFile() file: Express.Multer.File,
     @Req() request: AuthenticatedRequest,
   ) {
+    if (!file) {
+      throw new Error('File not uploaded');
+    }
     const assetDto = {
       fileName: file.originalname,
       fileType: file.mimetype,
@@ -74,6 +77,9 @@ export class AssetsController {
     @UploadedFile() file: Express.Multer.File,
     @Req() request: AuthenticatedRequest,
   ) {
+    if (!file) {
+      throw new Error('File not uploaded');
+    }
     const assetDto = {
       fileName: file.originalname,
       fileType: file.mimetype,

@@ -68,4 +68,27 @@ export class RedisAuthRepository {
 
     await redisClient.del(key);
   };
+
+  deleteAllSessionsByUserId = async (userId: string): Promise<void> => {
+    let cursor = "0";
+    do {
+      const reply = await redisClient.scan(cursor, {
+        MATCH: "refresh_tokens:*",
+        COUNT: 100,
+      });
+
+      cursor = reply.cursor;
+      const keys = reply.keys;
+
+      for (const key of keys) {
+        const data = await redisClient.get(key);
+        if (data) {
+          const session = JSON.parse(data) as RefreshTokenSession;
+          if (session.userId === userId) {
+            await redisClient.del(key);
+          }
+        }
+      }
+    } while (cursor !== "0");
+  };
 }

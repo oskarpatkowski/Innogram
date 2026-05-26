@@ -27,16 +27,40 @@ interface CommentComponentProps {
     onCommentLike: (commentId: string) => void;
     onReply: (parentCommentId: string, content: string) => void;
     currentUserProfileId?: string;
+    onCommentDeleted: () => void;
+    onCommentUpdated: () => void;
 }
 
-function CommentComponent({ comment, onCommentLike, onReply, currentUserProfileId }: CommentComponentProps) {
+function CommentComponent({ comment, onCommentLike, onReply, currentUserProfileId, onCommentDeleted, onCommentUpdated }: CommentComponentProps) {
     const [showReplyInput, setShowReplyInput] = useState(false);
     const [replyContent, setReplyContent] = useState("");
-    const [showReplies, setShowReplies] = useState(false); // State to toggle nested replies visibility
+    const [showReplies, setShowReplies] = useState(false);
+    const [error, setError] = useState("");
+    const [isEditing, setIsEditing] = useState(false);
+    const [editedContent, setEditedContent] = useState(comment.content);
 
     let isLikedByCurrentUser = false;
     if(comment.likes){
         isLikedByCurrentUser = comment.likes.some(like => like.profileId === currentUserProfileId);
+    }
+
+    const handleDelete = async () => {
+        try {
+            await apiClient.delete(`comments/${comment.id}`);
+            onCommentDeleted();
+        } catch  {
+            setError("couldn't delete comment")
+        }
+    }
+
+    const handleEdit = async () => {
+        try {
+            await apiClient.put(`comments/${comment.id}`, { content: editedContent });
+            setIsEditing(false);
+            onCommentUpdated();
+        } catch  {
+            setError("couldn't update comment")
+        }
     }
 
     const handleReplySubmit = () => {
@@ -47,12 +71,28 @@ function CommentComponent({ comment, onCommentLike, onReply, currentUserProfileI
         }
     };
 
+    const isCommentCreator = currentUserProfileId === comment.profileId;
+
     return (
         <div className="mb-2">
             <div className="flex justify-between items-start group">
                 <div className="pr-4 leading-[18px]">
                     <span className="font-semibold cursor-pointer mr-1">{comment.profile.username}</span>
-                    <span>{comment.content}</span>
+                    {isEditing ? (
+                        <input
+                            type="text"
+                            value={editedContent}
+                            onChange={(e) => setEditedContent(e.target.value)}
+                            className="w-full outline-none text-sm placeholder-[#737373] text-black border-b border-gray-200 focus:border-gray-400"
+                            onKeyPress={(e) => {
+                                if (e.key === 'Enter') {
+                                    handleEdit();
+                                }
+                            }}
+                        />
+                    ) : (
+                        <span>{comment.content}</span>
+                    )}
                 </div>
                 <div className="flex items-center gap-2">
                     {comment.likes.length > 0 && (
@@ -68,12 +108,39 @@ function CommentComponent({ comment, onCommentLike, onReply, currentUserProfileI
                     </button>
                 </div>
             </div>
-            <button
-                onClick={() => setShowReplyInput(!showReplyInput)}
-                className="text-xs text-gray-500 hover:underline mt-1 ml-1"
-            >
-                {showReplyInput ? "Cancel" : "Reply"}
-            </button>
+            <div className="flex items-center gap-2 mt-1 ml-1">
+                <button
+                    onClick={() => setShowReplyInput(!showReplyInput)}
+                    className="text-xs text-gray-500 hover:underline"
+                >
+                    {showReplyInput ? "Cancel" : "Reply"}
+                </button>
+                {isCommentCreator && (
+                    <>
+                        {isEditing ? (
+                            <button
+                                onClick={handleEdit}
+                                className="text-xs text-blue-500 hover:underline"
+                            >
+                                Save
+                            </button>
+                        ) : (
+                            <button
+                                onClick={() => setIsEditing(true)}
+                                className="text-xs text-gray-500 hover:underline"
+                            >
+                                Edit
+                            </button>
+                        )}
+                        <button
+                            onClick={handleDelete}
+                            className="text-xs text-red-500 hover:underline"
+                        >
+                            Delete
+                        </button>
+                    </>
+                )}
+            </div>
             {showReplyInput && (
                 <div className="flex items-center mt-2 ml-4">
                     <input
@@ -114,12 +181,15 @@ function CommentComponent({ comment, onCommentLike, onReply, currentUserProfileI
                                     onCommentLike={onCommentLike}
                                     onReply={onReply}
                                     currentUserProfileId={currentUserProfileId}
+                                    onCommentDeleted={onCommentDeleted}
+                                    onCommentUpdated={onCommentUpdated}
                                 />
                             ))}
                         </div>
                     )}
                 </div>
             )}
+            {error && <p className="text-red-500 text-xs mt-1 ml-1">{error}</p>}
         </div>
     )
 }
@@ -504,6 +574,8 @@ export default function Post(postData: PostData) {
                             onCommentLike={handleCommentLike}
                             onReply={handleCommentAdd}
                             currentUserProfileId={currentUserData?.id}
+                            onCommentDeleted={fetchComments}
+                            onCommentUpdated={fetchComments}
                         />
                     ))}
                 </div>

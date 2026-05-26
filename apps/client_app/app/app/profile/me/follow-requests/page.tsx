@@ -23,7 +23,6 @@ export default function FollowRequests() {
         const fetchRequests = async () => {
             try {
                 const { data } = await apiClient.get('/profiles/follow-requests');
-                // The backend returns ProfileFollow objects. We need to fetch the profile details for each follower.
                 const requestsWithProfiles = await Promise.all((data || []).map(async (req: FollowRequest) => {
                     try {
                         const profileRes = await apiClient.get(`/profiles/${req.followerProfileId}`);
@@ -58,7 +57,6 @@ export default function FollowRequests() {
     const handleReject = async (requestId: string) => {
         setActionLoading(requestId);
         try {
-            // Looking at the controller, /reject/:id deletes the follow record
             await apiClient.delete(`/profiles/reject/${requestId}`);
             setRequests(prev => prev.filter(r => r.id !== requestId));
         } catch (error) {

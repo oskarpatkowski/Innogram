@@ -180,14 +180,13 @@ async function main() {
             });
           }
         }
-        // Add a video to the third post
         if (i === 2) {
             const asset = await prisma.assets.create({
               data: {
                 fileName: `video-${post.id}.mp4`,
                 filePath: getVideoUrl(),
                 fileType: 'video/mp4',
-                fileSize: faker.number.int({ min: 10240, max: 5242880 }), // 10KB to 5MB
+                fileSize: faker.number.int({ min: 10240, max: 5242880 }),
                 orderIndex: 0,
                 createdById: author.id,
               }
@@ -203,6 +202,58 @@ async function main() {
             });
         }
       }
+    }
+  }
+
+  const otherProfile = profiles[1];
+  const otherUser = users.find((u) => u.id === otherProfile.userId);
+
+  if (otherProfile && otherUser) {
+    const postWithMention = await prisma.post.create({
+      data: {
+        content: `This is a post mentioning @${mainProfile.username}! Hope you see this.`,
+        profileId: otherProfile.id,
+        createdById: otherUser.id,
+      },
+    });
+
+    await prisma.postMention.create({
+      data: {
+        postId: postWithMention.id,
+        profileId: mainProfile.id,
+        createdById: otherUser.id,
+      },
+    });
+
+    const postForCommentMention = await prisma.post.create({
+      data: {
+        content: `This post will have a comment mentioning @${mainProfile.username}.`,
+        profileId: otherProfile.id,
+        createdById: otherUser.id,
+      },
+    });
+
+    const commentAuthor = profiles[2]; // Use a third profile for the comment
+    const commentUser = users.find((u) => u.id === commentAuthor.userId);
+
+    if (commentAuthor && commentUser) {
+      const commentWithMention = await prisma.comment.create({
+        data: {
+          postId: postForCommentMention.id,
+          profileId: commentAuthor.id,
+          content: `Hey @${mainProfile.username}, check out this cool post!`,
+          createdById: commentUser.id,
+          updatedById: commentUser.id,
+        },
+      });
+
+      await prisma.commentMention.create({
+        data: {
+          commentId: commentWithMention.id,
+          profileId: mainProfile.id,
+          createdById: commentUser.id,
+        },
+      });
     }
   }
 }

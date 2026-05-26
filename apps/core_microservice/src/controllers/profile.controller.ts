@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  NotFoundException,
   Param,
   Patch,
   Post,
@@ -53,7 +54,13 @@ export class ProfileController {
 
   @Get('/username/:username')
   async getIdByUsername(@Param('username') username: string) {
-    return await this.profileService.getIdByUsername(username);
+    const profileId = await this.profileService.getIdByUsername(username);
+    if (!profileId) {
+      throw new NotFoundException(
+        `Profile with username ${username} not found`,
+      );
+    }
+    return profileId;
   }
 
   @Get('/follow-requests')
@@ -63,7 +70,11 @@ export class ProfileController {
 
   @Get(':id')
   async getById(@Param('id') id: string) {
-    return await this.profileService.getById(id);
+    const profile = await this.profileService.getById(id);
+    if (!profile) {
+      throw new NotFoundException(`Profile with ID ${id} not found`);
+    }
+    return profile;
   }
 
   @Get()

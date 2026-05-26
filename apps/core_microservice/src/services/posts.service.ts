@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { CreatePostDto } from '../../dto/create.post.dto';
 import { UpdatePostDto } from '../../dto/update.post.dto';
 import { PrismaService } from '../services/prisma.service';
+import { Prisma } from '@prisma/client';
 
 type PostWithRelations = {
   id: string;
@@ -134,11 +135,27 @@ export class PostsService {
         },
       }),
       where: {
-        postMentions: {
-          some: {
-            profileId: profileId,
+        isArchived: false,
+        OR: [
+          {
+            postMentions: {
+              some: {
+                profileId: profileId,
+              },
+            },
           },
-        },
+          {
+            comments: {
+              some: {
+                commentMentions: {
+                  some: {
+                    profileId: profileId,
+                  },
+                },
+              },
+            },
+          },
+        ],
       },
       include: {
         postAssets: {
@@ -184,10 +201,11 @@ export class PostsService {
     };
   }
 
-  async getById(id: string) {
-    const post = await this.prisma.post.findUnique({
+  async getById(id: string, viewerProfileId?: string) {
+    const post = await this.prisma.post.findFirst({
       where: {
         id,
+        OR: [{ isArchived: false }, { profileId: viewerProfileId }],
       },
       include: {
         postAssets: {
@@ -207,7 +225,20 @@ export class PostsService {
     return post;
   }
 
-  async getProfilePosts(profileId: string, take: number, lastCursor?: string) {
+  async getProfilePosts(
+    profileId: string,
+    take: number,
+    lastCursor?: string,
+    currentViewerProfileId?: string,
+  ) {
+    const whereClause: Prisma.PostWhereInput = {
+      profileId: profileId,
+    };
+
+    if (currentViewerProfileId !== profileId) {
+      whereClause.isArchived = false;
+    }
+
     const result: PostWithRelations[] = await this.prisma.post.findMany({
       take: take + 1,
       ...(lastCursor && {
@@ -216,9 +247,7 @@ export class PostsService {
           id: lastCursor,
         },
       }),
-      where: {
-        profileId: profileId,
-      },
+      where: whereClause,
       include: {
         postAssets: {
           include: {
@@ -277,6 +306,21 @@ export class PostsService {
     return post;
   }
 
+  async setPostAsUnarchived(id: string) {
+    const post = await this.prisma.post.update({
+      where: {
+        id,
+      },
+      data: {
+        isArchived: false,
+      },
+    });
+
+    Logger.log(`Post ${post.id} unarchived`, 'PostsService');
+
+    return post;
+  }
+
   async getAll(take: number, lastCursor?: string) {
     const result: PostWithRelations[] = await this.prisma.post.findMany({
       take: take + 1,
@@ -286,6 +330,9 @@ export class PostsService {
           id: lastCursor,
         },
       }),
+      where: {
+        isArchived: false, // Exclude archived posts
+      },
       orderBy: {
         createdAt: 'desc',
       },
@@ -356,6 +403,7 @@ export class PostsService {
       take: take + 1,
       skip: skipCount,
       where: {
+        isArchived: false, // Exclude archived posts
         ...dateFilter,
       },
       orderBy: [
@@ -524,6 +572,7 @@ export class PostsService {
       ...paginationParams,
       where: {
         profileId: { in: followingProfileIds },
+        isArchived: false, // Exclude archived posts
         ...dateFilter,
       },
       include: {
@@ -586,6 +635,7 @@ export class PostsService {
         createdAt: 'desc',
       },
       where: {
+        isArchived: false,
         content: {
           contains: query,
         },

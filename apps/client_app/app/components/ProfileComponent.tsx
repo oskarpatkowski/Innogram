@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { apiClient } from "@/apiClient";
 
 export interface ProfileData {
@@ -46,7 +46,6 @@ interface UserProfileProps {
     profileId?: string;
 }
 
-
 export function UserProfile({ profileId }: UserProfileProps) {
     const [profile, setProfile] = useState<ProfileData | null>(null);
     const [currentUser, setCurrentUser] = useState<ProfileData | null>(null);
@@ -63,15 +62,31 @@ export function UserProfile({ profileId }: UserProfileProps) {
     const observer = useRef<IntersectionObserver>(null);
 
     useEffect(() => {
+        let ignore = false;
+
         const fetchInitialData = async () => {
             setIsLoadingProfile(true);
+            setProfile(null);
+
             try {
                 const { data: meData } = await apiClient.get("/profiles/me");
+                if (ignore) return;
                 setCurrentUser(meData);
 
-                const profileRoute = profileId ? `/profiles/${profileId}` : "/profiles/me";
+                let profileRoute = `/profiles/${profileId}`;
+                if (!profileId) {
+                    profileRoute = "/profiles/me";
+                }
+
                 const { data: profileData } = await apiClient.get(profileRoute);
-                setProfile(profileData);
+
+                if (ignore) return;
+
+                if (!profileData || (profileId && profileData.id !== profileId)) {
+                    setProfile(null)
+                } else {
+                    setProfile(profileData);
+                }
 
                 const currentProfileId = profileId || profileData.id;
 
@@ -84,8 +99,10 @@ export function UserProfile({ profileId }: UserProfileProps) {
                     followersCount = followersRes.data?.length || 0;
 
                     if (profileId && meData) {
-                        const isUserFollowing = followersRes.data.some((follower: ProfileData) => follower.id === meData.id);
-                        setIsFollowing(isUserFollowing);
+                        const isUserFollowing = followersRes.data.some(
+                            (follower: ProfileData) => follower.id === meData.id
+                        );
+                        if (!ignore) setIsFollowing(isUserFollowing);
                     }
 
                     const followingRes = await apiClient.get(
@@ -96,30 +113,48 @@ export function UserProfile({ profileId }: UserProfileProps) {
                     console.warn("Could not fetch connection stats", e);
                 }
 
-                setStats((prev) => ({
-                    ...prev,
-                    followers: followersCount,
-                    following: followingCount,
-                }));
+                if (!ignore) {
+                    setStats((prev) => ({
+                        ...prev,
+                        followers: followersCount,
+                        following: followingCount,
+                    }));
+                }
             } catch (e) {
-                console.error(e);
+                if (ignore) return;
+                console.error("Profile fetch error:", e);
+                setProfile(null);
             } finally {
-                setIsLoadingProfile(false);
+                if (!ignore) {
+                    setIsLoadingProfile(false);
+                }
             }
         };
 
         fetchInitialData();
+
+        return () => {
+            ignore = true;
+        };
     }, [profileId]);
 
     useEffect(() => {
         let ignore = false;
 
         const loadInitialPosts = async () => {
+            if (!profile?.id) return;
+
             setIsPostsLoading(true);
             try {
-                const postsRoute = activeTab === "posts"
-                    ? (profileId ? `/posts/profile/${profileId}` : "/posts/my")
-                    : (profileId ? `/posts/${profileId}/mentions` : "/posts/my/mentions");
+                let postsRoute = "";
+                const isMyProfileRoute = !profileId;
+
+                // Use the validated profile.id instead of the raw URL parameter
+                if (activeTab === "posts") {
+                    postsRoute = isMyProfileRoute ? "/posts/my" : `/posts/profile/${profile.id}`;
+                } else {
+                    postsRoute = isMyProfileRoute ? `/posts/my/mentions` : `/posts/${profile.id}/mentions`;
+                }
 
                 const { data: postsResponse } = await apiClient.get(postsRoute, {
                     params: { take: 12, lastCursor: null },
@@ -128,12 +163,13 @@ export function UserProfile({ profileId }: UserProfileProps) {
                 if (!ignore) {
                     const { data, metaData } = postsResponse;
                     if (Array.isArray(data)) {
-                        setPosts(data); // Set fresh data, clearing out stale list
+                        setPosts(data);
+                        setNextCursor(metaData?.lastCursor || null);
+                        setHasNextPage(metaData?.hasNextPage || false);
+
                         if (activeTab === "posts") {
                             setStats(prevStats => ({ ...prevStats, posts: data.length }));
                         }
-                        setNextCursor(metaData.lastCursor);
-                        setHasNextPage(metaData.hasNextPage);
                     }
                 }
             } catch (e) {
@@ -146,16 +182,21 @@ export function UserProfile({ profileId }: UserProfileProps) {
         loadInitialPosts();
 
         return () => { ignore = true; };
-    }, [profileId, activeTab]);
+    }, [profile?.id, activeTab, profileId]);
 
-    const loadMorePosts = useCallback(async () => {
-        if (!hasNextPage || isPostsLoading || !nextCursor) return;
+    const loadMorePosts = async () => {
+        if (!hasNextPage || isPostsLoading || !nextCursor || !profile?.id) return;
 
         setIsPostsLoading(true);
         try {
-            const postsRoute = activeTab === "posts"
-                ? (profileId ? `/posts/profile/${profileId}` : "/posts/my")
-                : (profileId ? `/posts/${profileId}/mentions` : "/posts/my/mentions");
+            let postsRoute = "";
+            const isMyProfileRoute = !profileId;
+
+            if (activeTab === "posts") {
+                postsRoute = isMyProfileRoute ? "/posts/my" : `/posts/profile/${profile.id}`;
+            } else {
+                postsRoute = isMyProfileRoute ? `/posts/my/mentions` : `/posts/${profile.id}/mentions`;
+            }
 
             const { data: postsResponse } = await apiClient.get(postsRoute, {
                 params: { take: 12, lastCursor: nextCursor },
@@ -171,15 +212,15 @@ export function UserProfile({ profileId }: UserProfileProps) {
                     }
                     return combined;
                 });
-                setNextCursor(metaData.lastCursor);
-                setHasNextPage(metaData.hasNextPage);
+                setNextCursor(metaData?.lastCursor || null);
+                setHasNextPage(metaData?.hasNextPage || false);
             }
         } catch (e) {
             console.error("Error fetching more posts:", e);
         } finally {
             setIsPostsLoading(false);
         }
-    }, [activeTab, profileId, hasNextPage, isPostsLoading, nextCursor]);
+    };
 
     const handleFollow = async () => {
         if (!profileId || isFollowActionLoading) return;
@@ -209,7 +250,7 @@ export function UserProfile({ profileId }: UserProfileProps) {
         }
     };
 
-    const lastPostElementRef = useCallback((node: HTMLDivElement | null) => {
+    const lastPostElementRef = (node: HTMLDivElement | null) => {
         if (isPostsLoading) return;
         if (observer.current) observer.current.disconnect();
 
@@ -218,8 +259,9 @@ export function UserProfile({ profileId }: UserProfileProps) {
                 loadMorePosts();
             }
         });
+
         if (node) observer.current.observe(node);
-    }, [isPostsLoading, hasNextPage, nextCursor, loadMorePosts]);
+    };
 
     if (isLoadingProfile) {
         return (

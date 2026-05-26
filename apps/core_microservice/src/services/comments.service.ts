@@ -28,7 +28,71 @@ export class CommentsService {
     });
 
     Logger.log(`Comment ${comment.id} created`, 'CommentsService');
+
+    this.handleMentions(
+      dto.content,
+      comment.id,
+      comment.postId,
+      profileId,
+      user.userId,
+    ).catch((err) => {
+      Logger.error(
+        `Failed to handle mentions for comment ${comment.id}`,
+        err instanceof Error ? err.message : String(err),
+        'CommentsService',
+      );
+    });
+
     return comment;
+  }
+
+  private async handleMentions(
+    content: string,
+    commentId: string,
+    postId: string,
+    authorProfileId: string,
+    authorUserId: string,
+  ) {
+    const mentionRegex = /@([a-zA-Z0-9_.-]+)/g;
+    const matches = [...content.matchAll(mentionRegex)];
+    const usernames = matches.map((match) => match[1]);
+
+    if (usernames.length === 0) return;
+
+    const uniqueUsernames = [...new Set(usernames)];
+
+    const mentionedProfiles = await this.prisma.profile.findMany({
+      where: {
+        username: { in: uniqueUsernames },
+        id: { not: authorProfileId },
+      },
+    });
+
+    for (const profile of mentionedProfiles) {
+      await this.prisma.notification.create({
+        data: {
+          type: 'MENTION',
+          title: 'New Mention in Comment',
+          message: `You were mentioned in a comment.`,
+          data: JSON.stringify({ postId, commentId, authorProfileId }),
+          createdById: authorUserId,
+          recipientId: profile.id,
+        },
+      });
+
+      await this.prisma.commentMention.create({
+        data: {
+          commentId: commentId,
+          profileId: profile.id,
+          createdById: authorUserId,
+        },
+      });
+    }
+
+    Logger.log(
+      `Handled ${mentionedProfiles.length} mentions for comment ${commentId}`,
+      'CommentsService',
+    );
   }
 
   async getById(id: string) {
@@ -68,6 +132,20 @@ export class CommentsService {
     });
 
     Logger.log(`Comment ${comment.id} updated`, 'CommentsService');
+
+    this.handleMentions(
+      commentDto?.content || '',
+      comment.id,
+      comment.postId,
+      comment.profileId,
+      comment.createdById,
+    ).catch((err) => {
+      Logger.error(
+        `Failed to re-handle mentions for updated comment ${comment.id}`,
+        err instanceof Error ? err.message : String(err),
+        'CommentsService',
+      );
+    });
 
     return comment;
   }

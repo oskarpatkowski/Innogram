@@ -31,6 +31,40 @@ interface CommentComponentProps {
     onCommentUpdated: () => void;
 }
 
+const parseContentForMentions = (content: string) => {
+    const mentionRegex = /@([a-zA-Z0-9_.-]+)/g;
+    const parts: React.ReactNode[] = [];
+    let lastIndex = 0;
+
+    content.replace(mentionRegex, (match, username, offset) => {
+        if (offset > lastIndex) {
+            parts.push(content.substring(lastIndex, offset));
+        }
+
+        parts.push(
+            <span
+                key={offset}
+                className="text-blue-500 hover:underline cursor-pointer"
+                onClick={(e) => {
+                    e.stopPropagation();
+                    window.location.href = `/app/profile/${username}`;
+                }}
+            >
+                {match}
+            </span>
+        );
+
+        lastIndex = offset + match.length;
+        return match;
+    });
+
+    if (lastIndex < content.length) {
+        parts.push(content.substring(lastIndex));
+    }
+
+    return parts;
+};
+
 function CommentComponent({ comment, onCommentLike, onReply, currentUserProfileId, onCommentDeleted, onCommentUpdated }: CommentComponentProps) {
     const [showReplyInput, setShowReplyInput] = useState(false);
     const [replyContent, setReplyContent] = useState("");
@@ -91,7 +125,7 @@ function CommentComponent({ comment, onCommentLike, onReply, currentUserProfileI
                             }}
                         />
                     ) : (
-                        <span>{comment.content}</span>
+                        <span>{parseContentForMentions(comment.content)}</span>
                     )}
                 </div>
                 <div className="flex items-center gap-2">
@@ -505,7 +539,7 @@ export default function Post(postData: PostData) {
                     )}
                 </div>
             )}
-
+            <span className="text-gray-500 text-s ml-2 italic">{postData.isArchived ? "Archived" : ""}</span>
             <div className="flex justify-between items-center px-3 py-2 mt-1">
                 <div className="flex gap-4 items-center">
                     <button
@@ -561,7 +595,7 @@ export default function Post(postData: PostData) {
                     </span>
                 )}
                 <span>
-                    {content}
+                    {parseContentForMentions(content)}
                 </span>
             </div>
 

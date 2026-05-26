@@ -5,12 +5,13 @@ import {
   Get,
   Param,
   Post,
-  Put,
+  Put, Req,
   UseGuards,
 } from '@nestjs/common';
 import { CreateNotificationDto } from '../../dto/create.notification.dto';
 import { UpdateNotificationDto } from '../../dto/update.notification.dto';
 import { AccessGuard } from '../guards/access.guard';
+import type { AuthenticatedRequest } from '../guards/access.guard';
 import { NotificationsService } from '../services/notification.service';
 
 @Controller('notifications')
@@ -29,8 +30,8 @@ export class NotificationsController {
   }
 
   @Get()
-  async getAll() {
-    return await this.notificationsService.getAll();
+  async getAll(@Req() request: AuthenticatedRequest) {
+    return await this.notificationsService.getByUserId(request.user.profileId);
   }
 
   @Put(':id')

@@ -50,6 +50,20 @@ export default function PostPage() {
         window.location.href = `/app/posts/${id}/edit`
     }
 
+    const handleArchive = async () => {
+        try {
+            await apiClient.patch(`/posts/archive/${id}`)
+            window.location.reload()
+        } catch {}
+    }
+
+    const handleUnArchive = async () => {
+        try {
+            await apiClient.patch(`/posts/unarchive/${id}`)
+            window.location.reload()
+        } catch {}
+    }
+
     return (
         <div className="flex flex-col items-center justify-center">
             {postData.id ? <Post {...postData}></Post> : null}
@@ -67,6 +81,24 @@ export default function PostPage() {
                         >
                             Edit Post
                         </button>
+                        {
+                            !postData.isArchived ? (
+                                <button
+                                    className="bg-black text-white rounded-md m-2 p-2 hover:bg-gray-800 transition-all hover:cursor-pointer text-sm font-semibold"
+                                    onClick={handleArchive}
+                                >
+                                    Archive Post
+                                </button>
+                            ) : (
+                                <button
+                                    className="bg-black text-white rounded-md m-2 p-2 hover:bg-gray-800 transition-all hover:cursor-pointer text-sm font-semibold"
+                                    onClick={handleUnArchive}
+                                >
+                                    Unarchive Post
+                                </button>
+                            )
+                        }
+
                     </div>
                 ) : <></>
             }

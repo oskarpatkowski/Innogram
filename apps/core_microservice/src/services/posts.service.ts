@@ -213,16 +213,35 @@ export class PostsService {
             asset: true,
           },
         },
+        profile: true,
       },
     });
 
-    if (post) {
-      Logger.log(`Post ${post.id} found`, 'PostsService');
-    } else {
+    if (!post) {
       Logger.log(`Post ${id} not found`, 'PostsService');
+      return null;
+    }
+    const isOwner = post.profileId === viewerProfileId;
+
+    if (post.profile.isPublic || isOwner) {
+      Logger.log(`Post ${post.id} found`, 'PostsService');
+      return post;
     }
 
-    return post;
+    const isFollowing = await this.prisma.profileFollow.findFirst({
+      where: {
+        followerProfileId: viewerProfileId,
+        followingProfileId: post.profileId,
+      },
+    });
+
+    if (isFollowing) {
+      Logger.log(`Post ${post.id} found`, 'PostsService');
+      return post;
+    }
+
+    Logger.log(`Post ${id} not found`, 'PostsService');
+    return null;
   }
 
   async getProfilePosts(
@@ -231,11 +250,46 @@ export class PostsService {
     lastCursor?: string,
     currentViewerProfileId?: string,
   ) {
+    const profile = await this.prisma.profile.findUnique({
+      where: { id: profileId },
+    });
+
+    if (!profile) {
+      return {
+        data: [],
+        metaData: {
+          hasNextPage: false,
+          lastCursor: null,
+        },
+      };
+    }
+
+    const isOwner = profileId === currentViewerProfileId;
+
+    if (!profile.isPublic && !isOwner) {
+      const isFollowing = await this.prisma.profileFollow.findFirst({
+        where: {
+          followerProfileId: currentViewerProfileId,
+          followingProfileId: profileId,
+        },
+      });
+
+      if (!isFollowing) {
+        return {
+          data: [],
+          metaData: {
+            hasNextPage: false,
+            lastCursor: null,
+          },
+        };
+      }
+    }
+
     const whereClause: Prisma.PostWhereInput = {
       profileId: profileId,
     };
 
-    if (currentViewerProfileId !== profileId) {
+    if (!isOwner) {
       whereClause.isArchived = false;
     }
 
@@ -331,7 +385,10 @@ export class PostsService {
         },
       }),
       where: {
-        isArchived: false, // Exclude archived posts
+        isArchived: false,
+        profile: {
+          isPublic: true,
+        },
       },
       orderBy: {
         createdAt: 'desc',
@@ -403,7 +460,10 @@ export class PostsService {
       take: take + 1,
       skip: skipCount,
       where: {
-        isArchived: false, // Exclude archived posts
+        isArchived: false,
+        profile: {
+          isPublic: true,
+        },
         ...dateFilter,
       },
       orderBy: [
@@ -571,7 +631,16 @@ export class PostsService {
       take: take + 1,
       ...paginationParams,
       where: {
-        profileId: { in: followingProfileIds },
+        OR: [
+          {
+            profileId: { in: followingProfileIds },
+          },
+          {
+            profile: {
+              isPublic: true,
+            },
+          },
+        ],
         isArchived: false, // Exclude archived posts
         ...dateFilter,
       },
@@ -638,6 +707,9 @@ export class PostsService {
         isArchived: false,
         content: {
           contains: query,
+        },
+        profile: {
+          isPublic: true,
         },
       },
       include: {

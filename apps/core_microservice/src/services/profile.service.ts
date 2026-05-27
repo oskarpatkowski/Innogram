@@ -3,6 +3,7 @@ import { CreateProfileDto } from '../../dto/create.profile.dto';
 import { UpdateProfileDto } from '../../dto/update.profile.dto';
 import { PrismaService } from './prisma.service';
 import { AuthService } from './auth.service';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class ProfileService {
@@ -205,6 +206,24 @@ export class ProfileService {
     return follow;
   }
 
+  async removeFollower(followerProfileId: string, followingProfileId: string) {
+    const follow = await this.prisma.profileFollow.delete({
+      where: {
+        followerProfileId_followingProfileId: {
+          followerProfileId: followerProfileId,
+          followingProfileId: followingProfileId,
+        },
+      },
+    });
+
+    Logger.log(
+      `Profile ${followerProfileId} removed as a follower of ${followingProfileId}`,
+      'ProfileService',
+    );
+
+    return follow;
+  }
+
   async acceptFollow(profileFollowId: string) {
     const follow = await this.prisma.profileFollow.update({
       where: {
@@ -264,13 +283,22 @@ export class ProfileService {
   }
 
   async getFollowers(profileId: string) {
+    const targetProfile = await this.prisma.profile.findUnique({
+      where: { id: profileId },
+    });
+
+    const isPublic = targetProfile?.isPublic;
+    const condition: Prisma.ProfileFollowWhereInput = {
+      followingProfileId: profileId,
+    };
+    if (!isPublic) {
+      condition.accepted = true;
+    }
+
     const followers = await this.prisma.profile.findMany({
       where: {
         followers: {
-          some: {
-            followingProfileId: profileId,
-            accepted: true,
-          },
+          some: condition,
         },
       },
     });
@@ -289,7 +317,7 @@ export class ProfileService {
         following: {
           some: {
             followerProfileId: profileId,
-            accepted: true,
+            OR: [{ accepted: true }, { followingProfile: { isPublic: true } }],
           },
         },
       },
@@ -329,14 +357,38 @@ export class ProfileService {
       throw new Error(`Profile ${profileId} not found`);
     }
 
+    const isNowPublic = !profile.isPublic;
+
     const updatedProfile = await this.prisma.profile.update({
       where: {
         id: profileId,
       },
       data: {
-        isPublic: !profile.isPublic,
+        isPublic: isNowPublic,
       },
     });
+
+    if (isNowPublic) {
+      await this.prisma.profileFollow.updateMany({
+        where: {
+          followingProfileId: profileId,
+          accepted: false,
+        },
+        data: {
+          accepted: true,
+        },
+      });
+    } else {
+      await this.prisma.profileFollow.updateMany({
+        where: {
+          followingProfileId: profileId,
+          accepted: null,
+        },
+        data: {
+          accepted: false,
+        },
+      });
+    }
 
     Logger.log(
       `Profile ${profileId} visibility changed to ${updatedProfile.isPublic}`,

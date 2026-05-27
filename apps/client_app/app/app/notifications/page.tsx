@@ -34,11 +34,6 @@ export interface Notification {
     data: JsonValue;
 }
 
-export interface UpdateNotificationDto {
-    isRead?: boolean;
-    readAt?: string | Date | null;
-}
-
 export function formatTimeAgo(dateString: string): string {
     const date = new Date(dateString);
     const now = new Date();
@@ -84,24 +79,13 @@ export default function NotificationCenter() {
         fetch();
     }, []);
 
-    const markAsRead = async (id: string, isCurrentlyRead: boolean) => {
-        if (isCurrentlyRead) return;
-
-        setNotifications((prev) =>
-            prev.map((notif) =>
-                notif.id === id ? { ...notif, isRead: true } : notif
-            )
-        );
+    const handleNotificationClick = async (id: string) => {
+        setNotifications((prev) => prev.filter((notif) => notif.id !== id));
 
         try {
-            const updateData: UpdateNotificationDto = {
-                isRead: true,
-                readAt: new Date().toISOString(),
-            };
-
-            await apiClient.put(`/notifications/${id}`, updateData);
+            await apiClient.delete(`/notifications/${id}`);
         } catch (err) {
-            console.error('Failed to mark notification as read', err);
+            console.error('Failed to delete notification', err);
             fetchNotifications();
         }
     };
@@ -141,7 +125,7 @@ export default function NotificationCenter() {
                     notifications.map((notif) => (
                         <div
                             key={notif.id}
-                            onClick={() => markAsRead(notif.id, notif.isRead)}
+                            onClick={() => handleNotificationClick(notif.id)}
                             className={`flex items-center gap-3 p-4 hover:bg-gray-50 cursor-pointer transition-colors duration-200 border-b border-gray-100 ${
                                 !notif.isRead ? 'bg-gray-100/50' : 'bg-white'
                             }`}

@@ -10,6 +10,7 @@ export default function Followers() {
     const [isPrivate, setIsPrivate] = useState<boolean | null>(null);
     const [error, setError] = useState("");
     const [isLoading, setIsLoading] = useState(true);
+    const [removingIds, setRemovingIds] = useState<Set<string>>(new Set());
 
     useEffect(() => {
         const fetchInitialData = async () => {
@@ -29,6 +30,22 @@ export default function Followers() {
 
         fetchInitialData();
     }, []);
+
+    const handleRemoveFollower = async (followerId: string) => {
+        setRemovingIds(prev => new Set(prev).add(followerId));
+        try {
+            await apiClient.delete(`/profiles/followers/${followerId}`);
+            setFollowers(prev => prev.filter(f => f.id !== followerId));
+        } catch (error) {
+            console.error("Failed to remove follower", error);
+        } finally {
+            setRemovingIds(prev => {
+                const next = new Set(prev);
+                next.delete(followerId);
+                return next;
+            });
+        }
+    };
 
     if (isLoading) {
         return (
@@ -84,8 +101,12 @@ export default function Followers() {
                             </Link>
 
                             {isPrivate && (
-                                <button className="ml-3 bg-gray-100 text-gray-900 text-sm font-semibold py-1.5 px-4 rounded-lg hover:bg-gray-200 transition-colors">
-                                    Remove
+                                <button
+                                    onClick={() => handleRemoveFollower(follower.id)}
+                                    disabled={removingIds.has(follower.id)}
+                                    className="ml-3 bg-gray-100 text-gray-900 text-sm font-semibold py-1.5 px-4 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+                                >
+                                    {removingIds.has(follower.id) ? 'Removing...' : 'Remove'}
                                 </button>
                             )}
                         </div>

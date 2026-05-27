@@ -56,7 +56,9 @@ async function main() {
   });
 
   const user2 = await prisma.user.create({
-    data: {},
+    data: {
+        createdById: user.id,
+    },
   })
 
   await prisma.account.create({
@@ -79,7 +81,7 @@ async function main() {
       provider: 'LOCAL',
       providerId: 'test2@test.com',
       lastLoginAt: new Date(),
-      createdById: user2.id,
+      createdById: user.id,
     }
   })
 
@@ -103,7 +105,7 @@ async function main() {
       bio: faker.lorem.sentence(),
       birthday: faker.date.past({ years: 20 }),
       avatarUrl: faker.image.avatar(),
-      createdById: user2.id,
+      createdById: user.id,
     },
   });
 
@@ -157,14 +159,16 @@ async function main() {
         followingProfileId: mainProfile.id,
         createdById: users[i].id,
         updatedById: users[i].id,
+        accepted: mainProfile.isPublic,
       },
     });
     await prisma.profileFollow.create({
         data: {
             followingProfileId: profiles[i].id,
             followerProfileId: mainProfile.id,
-            createdById: users[i].id,
-            updatedById: users[i].id,
+            createdById: user.id,
+            updatedById: user.id,
+            accepted: profiles[i].isPublic,
         }
     })
   }

@@ -125,6 +125,17 @@ export class ProfileController {
     );
   }
 
+  @Delete('/followers/:followerProfileId')
+  async removeFollower(
+    @Param('followerProfileId') followerProfileId: string,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return await this.profileService.removeFollower(
+      followerProfileId,
+      request.user.profileId,
+    );
+  }
+
   @Patch('/accept/:profileFollowId')
   async acceptFollow(@Param('profileFollowId') profileFollowId: string) {
     return await this.profileService.acceptFollow(profileFollowId);

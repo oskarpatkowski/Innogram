@@ -1,13 +1,7 @@
-'use client';
-
-import { useRouter } from "next/router";
-
-export default function ChatId() {
-  const router = useRouter();
-
+export default function chatPage() {
   return (
-    <div>
-      <h1>Chat Id: {router.query.id}</h1>
-    </div>
-  );
+      <div>
+        Chat page
+      </div>
+  )
 }

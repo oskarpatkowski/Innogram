@@ -38,6 +38,11 @@ export class ChatsController {
     return await this.chatsService.getAll();
   }
 
+  @Get('profile/:profileId')
+  async getForProfile(@Param('profileId') profileId: string) {
+    return await this.chatsService.getChatsForProfile(profileId);
+  }
+
   @Put(':id')
   async update(@Param('id') id: string, @Body() chatDto: UpdateChatDto) {
     return await this.chatsService.update(id, chatDto);

@@ -42,6 +42,13 @@ export class ChatsService {
       where: {
         id,
       },
+      include: {
+        participants: {
+          include: {
+            profile: true,
+          },
+        },
+      },
     });
 
     if (chat) {
@@ -54,7 +61,15 @@ export class ChatsService {
   }
 
   async getAll() {
-    const chats = await this.prisma.chat.findMany();
+    const chats = await this.prisma.chat.findMany({
+      include: {
+        participants: {
+          include: {
+            profile: true,
+          },
+        },
+      },
+    });
 
     if (chats.length > 0) {
       Logger.log(`Found ${chats.length} chats`, 'ChatsService');
@@ -71,6 +86,13 @@ export class ChatsService {
         participants: {
           some: {
             profileId: profileId,
+          },
+        },
+      },
+      include: {
+        participants: {
+          include: {
+            profile: true,
           },
         },
       },

@@ -125,6 +125,17 @@ export class ProfileService {
       throw new Error('A profile cannot follow itself');
     }
 
+    const existingFollow = await this.prisma.profileFollow.findFirst({
+      where: {
+        followerProfileId: followerProfileId,
+        followingProfileId: followingProfileId,
+      },
+    });
+
+    if (existingFollow) {
+      return existingFollow;
+    }
+
     const followedProfile = await this.prisma.profile.findFirst({
       where: {
         id: followingProfileId,
@@ -258,6 +269,7 @@ export class ProfileService {
         followers: {
           some: {
             followingProfileId: profileId,
+            accepted: true,
           },
         },
       },
@@ -277,6 +289,7 @@ export class ProfileService {
         following: {
           some: {
             followerProfileId: profileId,
+            accepted: true,
           },
         },
       },
@@ -288,6 +301,21 @@ export class ProfileService {
     );
 
     return following;
+  }
+
+  async getPendingFollowRequest(
+    followerProfileId: string,
+    followingProfileId: string,
+  ) {
+    const followRequest = await this.prisma.profileFollow.findFirst({
+      where: {
+        followerProfileId,
+        followingProfileId,
+        accepted: false,
+      },
+    });
+
+    return followRequest;
   }
 
   async changeVisibility(profileId: string) {

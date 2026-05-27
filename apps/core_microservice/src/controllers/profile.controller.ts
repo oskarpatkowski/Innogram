@@ -68,6 +68,17 @@ export class ProfileController {
     return await this.profileService.getFollowRequests(request.user.profileId);
   }
 
+  @Get('/follow-requests/pending/:followingProfileId')
+  async getPendingFollowRequest(
+    @Param('followingProfileId') followingProfileId: string,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return await this.profileService.getPendingFollowRequest(
+      request.user.profileId,
+      followingProfileId,
+    );
+  }
+
   @Get(':id')
   async getById(@Param('id') id: string) {
     const profile = await this.profileService.getById(id);

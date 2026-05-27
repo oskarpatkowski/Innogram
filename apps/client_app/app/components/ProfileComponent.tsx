@@ -50,6 +50,7 @@ export function UserProfile({ profileId }: UserProfileProps) {
     const [profile, setProfile] = useState<ProfileData | null>(null);
     const [currentUser, setCurrentUser] = useState<ProfileData | null>(null);
     const [isFollowing, setIsFollowing] = useState(false);
+    const [isRequested, setIsRequested] = useState(false);
     const [isFollowActionLoading, setIsFollowActionLoading] = useState(false);
     const [posts, setPosts] = useState<PostData[]>([]);
     const [stats, setStats] = useState({ followers: 0, following: 0, posts: 0 });
@@ -109,6 +110,14 @@ export function UserProfile({ profileId }: UserProfileProps) {
                         `/profiles/following/${currentProfileId}`
                     );
                     followingCount = followingRes.data?.length || 0;
+
+                    if (profileId && meData && !profileData.isPublic) {
+                        const { data: pendingRequest } = await apiClient.get(
+                            `/profiles/follow-requests/pending/${profileId}`
+                        );
+                        if (!ignore) setIsRequested(!!pendingRequest);
+                    }
+
                 } catch (e) {
                     console.warn("Could not fetch connection stats", e);
                 }
@@ -227,8 +236,12 @@ export function UserProfile({ profileId }: UserProfileProps) {
         setIsFollowActionLoading(true);
         try {
             await apiClient.post(`/profiles/follow/${profileId}`);
-            setIsFollowing(true);
-            setStats(prev => ({ ...prev, followers: prev.followers + 1 }));
+            if (profile?.isPublic) {
+                setIsFollowing(true);
+                setStats(prev => ({ ...prev, followers: prev.followers + 1 }));
+            } else {
+                setIsRequested(true);
+            }
         } catch (error) {
             console.error("Failed to follow user", error);
         } finally {
@@ -245,6 +258,19 @@ export function UserProfile({ profileId }: UserProfileProps) {
             setStats(prev => ({ ...prev, followers: prev.followers - 1 }));
         } catch (error) {
             console.error("Failed to unfollow user", error);
+        } finally {
+            setIsFollowActionLoading(false);
+        }
+    };
+
+    const handleCancelRequest = async () => {
+        if (!profileId || isFollowActionLoading) return;
+        setIsFollowActionLoading(true);
+        try {
+            await apiClient.delete(`/profiles/unfollow/${profileId}`);
+            setIsRequested(false);
+        } catch (error) {
+            console.error("Failed to cancel follow request", error);
         } finally {
             setIsFollowActionLoading(false);
         }
@@ -331,6 +357,14 @@ export function UserProfile({ profileId }: UserProfileProps) {
                                         className="px-4 py-1 bg-gray-200 text-gray-800 rounded font-semibold disabled:opacity-50"
                                     >
                                         Unfollow
+                                    </button>
+                                ) : isRequested ? (
+                                    <button
+                                        onClick={handleCancelRequest}
+                                        disabled={isFollowActionLoading}
+                                        className="px-4 py-1 bg-gray-200 text-gray-800 rounded font-semibold disabled:opacity-50"
+                                    >
+                                        Request Sent
                                     </button>
                                 ) : (
                                     <button

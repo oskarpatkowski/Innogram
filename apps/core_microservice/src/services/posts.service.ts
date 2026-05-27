@@ -232,6 +232,7 @@ export class PostsService {
       where: {
         followerProfileId: viewerProfileId,
         followingProfileId: post.profileId,
+        accepted: true,
       },
     });
 
@@ -271,6 +272,7 @@ export class PostsService {
         where: {
           followerProfileId: currentViewerProfileId,
           followingProfileId: profileId,
+          accepted: true,
         },
       });
 
@@ -580,7 +582,7 @@ export class PostsService {
     timeframe: 'day' | 'week' | 'month' | 'year' | 'all' = 'all',
   ) {
     const follows = await this.prisma.profileFollow.findMany({
-      where: { followerProfileId: profileId },
+      where: { followerProfileId: profileId, accepted: true },
       select: { followingProfileId: true },
     });
     const followingProfileIds = follows.map(

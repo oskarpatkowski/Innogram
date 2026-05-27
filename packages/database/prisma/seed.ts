@@ -55,6 +55,10 @@ async function main() {
     data: {},
   });
 
+  const user2 = await prisma.user.create({
+    data: {},
+  })
+
   await prisma.account.create({
     data: {
       userId: user.id,
@@ -66,6 +70,18 @@ async function main() {
       createdById: user.id,
     },
   });
+
+  await prisma.account.create({
+    data: {
+      userId: user2.id,
+      email: 'test2@test.com',
+      passwordHash: password,
+      provider: 'LOCAL',
+      providerId: 'test2@test.com',
+      lastLoginAt: new Date(),
+      createdById: user2.id,
+    }
+  })
 
   const mainProfile = await prisma.profile.create({
     data: {
@@ -79,8 +95,20 @@ async function main() {
     },
   });
 
-  const profiles = [mainProfile];
-  const users = [user];
+  const secondProfile = await prisma.profile.create({
+    data: {
+      userId: user2.id,
+      username: 'test2',
+      displayName: 'Test User',
+      bio: faker.lorem.sentence(),
+      birthday: faker.date.past({ years: 20 }),
+      avatarUrl: faker.image.avatar(),
+      createdById: user2.id,
+    },
+  });
+
+  const profiles = [mainProfile, secondProfile];
+  const users = [user, user2];
 
   // create 10 more users
   for (let i = 0; i < 10; i++) {
@@ -154,7 +182,6 @@ async function main() {
           },
         });
 
-        // Add 1-2 images to some of the posts (e.g., first 2 posts of each user)
         if (i < 2) {
           const numAssets = faker.number.int({ min: 1, max: 2 });
           

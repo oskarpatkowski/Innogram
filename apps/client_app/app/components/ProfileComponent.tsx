@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { apiClient } from "@/apiClient";
 
 export interface ProfileData {
@@ -53,7 +53,12 @@ export function UserProfile({ profileId }: UserProfileProps) {
     const [isLoadingProfile, setIsLoadingProfile] = useState(true);
     const [isPostsLoading, setIsPostsLoading] = useState(false);
     const [activeTab, setActiveTab] = useState<"posts" | "tagged">("posts");
+    const [nextCursor, setNextCursor] = useState<string | null>(null);
+    const [hasNextPage, setHasNextPage] = useState(true);
 
+    const observer = useRef<IntersectionObserver>(null);
+
+    // 1. Handle profile meta data queries
     useEffect(() => {
         const fetchProfileData = async () => {
             setIsLoadingProfile(true);
@@ -94,33 +99,86 @@ export function UserProfile({ profileId }: UserProfileProps) {
     }, [profileId]);
 
     useEffect(() => {
-        const fetchPosts = async () => {
+        let ignore = false;
+
+        const loadInitialPosts = async () => {
             setIsPostsLoading(true);
             try {
-                let postsRoute = "";
+                const postsRoute = activeTab === "posts"
+                    ? (profileId ? `/posts/profile/${profileId}` : "/posts/my")
+                    : (profileId ? `/posts/${profileId}/mentions` : "/posts/my/mentions");
 
-                if (activeTab === "posts") {
-                    postsRoute = profileId ? `/posts/profile/${profileId}` : "/posts/my";
-                } else if (activeTab === "tagged") {
-                    postsRoute = profileId ? `/posts/${profileId}/mentions` : "/posts/my/mentions";
-                }
+                const { data: postsResponse } = await apiClient.get(postsRoute, {
+                    params: { take: 12, lastCursor: null },
+                });
 
-                const { data: postsResponse } = await apiClient.get(`${postsRoute}?take=12`);
-                const postsData = postsResponse?.data || [];
-                setPosts(postsData);
-
-                if (activeTab === "posts") {
-                    setStats((prev) => ({ ...prev, posts: postsData.length }));
+                if (!ignore) {
+                    const { data, metaData } = postsResponse;
+                    if (Array.isArray(data)) {
+                        setPosts(data); // Set fresh data, clearing out stale list
+                        if (activeTab === "posts") {
+                            setStats(prevStats => ({ ...prevStats, posts: data.length }));
+                        }
+                        setNextCursor(metaData.lastCursor);
+                        setHasNextPage(metaData.hasNextPage);
+                    }
                 }
             } catch (e) {
-                console.error(e);
+                console.error("Error fetching initial posts:", e);
             } finally {
-                setIsPostsLoading(false);
+                if (!ignore) setIsPostsLoading(false);
             }
         };
 
-        fetchPosts();
+        loadInitialPosts();
+
+        return () => { ignore = true; };
     }, [profileId, activeTab]);
+
+    const loadMorePosts = useCallback(async () => {
+        if (!hasNextPage || isPostsLoading || !nextCursor) return;
+
+        setIsPostsLoading(true);
+        try {
+            const postsRoute = activeTab === "posts"
+                ? (profileId ? `/posts/profile/${profileId}` : "/posts/my")
+                : (profileId ? `/posts/${profileId}/mentions` : "/posts/my/mentions");
+
+            const { data: postsResponse } = await apiClient.get(postsRoute, {
+                params: { take: 12, lastCursor: nextCursor },
+            });
+
+            const { data, metaData } = postsResponse;
+
+            if (Array.isArray(data)) {
+                setPosts(prev => {
+                    const combined = [...prev, ...data];
+                    if (activeTab === "posts") {
+                        setStats(prevStats => ({ ...prevStats, posts: combined.length }));
+                    }
+                    return combined;
+                });
+                setNextCursor(metaData.lastCursor);
+                setHasNextPage(metaData.hasNextPage);
+            }
+        } catch (e) {
+            console.error("Error fetching more posts:", e);
+        } finally {
+            setIsPostsLoading(false);
+        }
+    }, [activeTab, profileId, hasNextPage, isPostsLoading, nextCursor]);
+
+    const lastPostElementRef = useCallback((node: HTMLDivElement | null) => {
+        if (isPostsLoading) return;
+        if (observer.current) observer.current.disconnect();
+
+        observer.current = new IntersectionObserver(entries => {
+            if (entries[0].isIntersecting && hasNextPage && nextCursor) {
+                loadMorePosts();
+            }
+        });
+        if (node) observer.current.observe(node);
+    }, [isPostsLoading, hasNextPage, nextCursor, loadMorePosts]);
 
     if (isLoadingProfile) {
         return (
@@ -146,9 +204,9 @@ export function UserProfile({ profileId }: UserProfileProps) {
                         />
                     ) : (
                         <div className="w-24 h-24 sm:w-36 sm:h-36 rounded-full bg-gray-100 border border-gray-200 p-1 flex items-center justify-center">
-              <span className="text-gray-500 text-4xl sm:text-6xl font-light uppercase">
-                {profile.displayName ? profile.displayName[0] : profile.username[0]}
-              </span>
+                          <span className="text-gray-500 text-4xl sm:text-6xl font-light uppercase">
+                            {profile.displayName ? profile.displayName[0] : profile.username[0]}
+                          </span>
                         </div>
                     )}
                 </div>
@@ -161,15 +219,15 @@ export function UserProfile({ profileId }: UserProfileProps) {
                     </div>
 
                     <div className="flex gap-6 sm:gap-10 mb-4 text-sm sm:text-base text-gray-900">
-            <span>
-              <span className="font-semibold">{stats.posts}</span> posts
-            </span>
                         <span>
-              <span className="font-semibold">{stats.followers}</span> followers
-            </span>
+                          <span className="font-semibold">{stats.posts}</span> posts
+                        </span>
                         <span>
-              <span className="font-semibold">{stats.following}</span> following
-            </span>
+                          <span className="font-semibold">{stats.followers}</span> followers
+                        </span>
+                        <span>
+                          <span className="font-semibold">{stats.following}</span> following
+                        </span>
                     </div>
 
                     <div className="text-sm text-gray-900">
@@ -209,17 +267,17 @@ export function UserProfile({ profileId }: UserProfileProps) {
                 </div>
             </div>
 
-            {/* Posts Grid */}
-            {isPostsLoading ? (
-                <div className="flex justify-center items-center h-32 mt-4">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-400"></div>
-                </div>
-            ) : (
-                <div className="grid grid-cols-3 gap-1 sm:gap-2 lg:gap-4 mt-2">
-                    {posts.map((post) => (
+            <div className="grid grid-cols-3 gap-1 sm:gap-2 lg:gap-4 mt-2">
+                {posts.map((post, index) => {
+                    const isLastElement = posts.length === index + 1;
+                    return (
                         <div
+                            ref={isLastElement ? lastPostElementRef : undefined}
                             key={post.id}
-                            className="aspect-square bg-gray-200 relative group overflow-hidden cursor-pointer"
+                            className="aspect-square bg-gray-200 relative group overflow-hidden cursor-pointer hover:blur-xs transition-all"
+                            onClick={() => {
+                                window.location.href = `/app/posts/${post.id}`;
+                            }}
                         >
                             {post.postAssets && post.postAssets.length > 0 ? (
                                 post.postAssets[0].asset.fileType.startsWith("video/") ? (
@@ -239,23 +297,26 @@ export function UserProfile({ profileId }: UserProfileProps) {
                                     {post.content.length > 100 ? `${post.content.substring(0, 100)}...` : post.content}
                                 </div>
                             )}
-
-                            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center opacity-0 group-hover:opacity-100">
-                            </div>
                         </div>
-                    ))}
+                    );
+                })}
+            </div>
 
-                    {posts.length === 0 && !profile.isPublic && profileId && (
-                        <div className="col-span-3 text-center py-12 text-sm text-gray-500">
-                            This account is private. Follow to see their photos and videos.
-                        </div>
-                    )}
+            {isPostsLoading && (
+                <div className="flex justify-center items-center h-32 mt-4">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-400"></div>
+                </div>
+            )}
 
-                    {posts.length === 0 && (profile.isPublic || !profileId) && (
-                        <div className="col-span-3 text-center py-12 text-sm text-gray-500">
-                            No {activeTab === "tagged" ? "photos or videos" : "posts"} yet.
-                        </div>
-                    )}
+            {!isPostsLoading && posts.length === 0 && !profile.isPublic && profileId && (
+                <div className="col-span-3 text-center py-12 text-sm text-gray-500">
+                    This account is private. Follow to see their photos and videos.
+                </div>
+            )}
+
+            {!isPostsLoading && posts.length === 0 && (profile.isPublic || !profileId) && (
+                <div className="col-span-3 text-center py-12 text-sm text-gray-500">
+                    No {activeTab === "tagged" ? "photos or videos" : "posts"} yet.
                 </div>
             )}
         </div>

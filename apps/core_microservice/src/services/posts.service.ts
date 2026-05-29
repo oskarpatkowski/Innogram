@@ -3,6 +3,38 @@ import { CreatePostDto } from '../../dto/create.post.dto';
 import { UpdatePostDto } from '../../dto/update.post.dto';
 import { PrismaService } from '../services/prisma.service';
 
+type PostWithRelations = {
+  id: string;
+  content: string;
+  isArchived: boolean;
+  profileId: string;
+  createdAt: Date;
+  updatedAt: Date;
+  createdById: string;
+  updatedById: string | null;
+  postAssets?: {
+    id: string;
+    postId: string;
+    assetId: string;
+    createdById: string;
+    asset: {
+      id: string;
+      filePath: string;
+      fileType: string;
+    };
+  }[];
+  postLikes?: {
+    id: string;
+    postId: string;
+    profileId: string;
+    createdById: string;
+    updatedById: string | null;
+  }[];
+  _count?: {
+    postLikes: number;
+  };
+};
+
 @Injectable()
 export class PostsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -93,7 +125,7 @@ export class PostsService {
     take: number,
     lastCursor?: string,
   ) {
-    const result = await this.prisma.post.findMany({
+    const result: PostWithRelations[] = await this.prisma.post.findMany({
       take: take + 1,
       ...(lastCursor && {
         skip: 1,
@@ -105,6 +137,13 @@ export class PostsService {
         postMentions: {
           some: {
             profileId: profileId,
+          },
+        },
+      },
+      include: {
+        postAssets: {
+          include: {
+            asset: true,
           },
         },
       },
@@ -150,6 +189,13 @@ export class PostsService {
       where: {
         id,
       },
+      include: {
+        postAssets: {
+          include: {
+            asset: true,
+          },
+        },
+      },
     });
 
     if (post) {
@@ -162,7 +208,7 @@ export class PostsService {
   }
 
   async getProfilePosts(profileId: string, take: number, lastCursor?: string) {
-    const result = await this.prisma.post.findMany({
+    const result: PostWithRelations[] = await this.prisma.post.findMany({
       take: take + 1,
       ...(lastCursor && {
         skip: 1,
@@ -232,7 +278,7 @@ export class PostsService {
   }
 
   async getAll(take: number, lastCursor?: string) {
-    const result = await this.prisma.post.findMany({
+    const result: PostWithRelations[] = await this.prisma.post.findMany({
       take: take + 1,
       ...(lastCursor && {
         skip: 1,
@@ -274,17 +320,114 @@ export class PostsService {
     };
   }
 
-  async update(id: string, postDto: UpdatePostDto) {
-    const post = await this.prisma.post.update({
+  async getPopular(
+    take: number,
+    lastCursor?: string,
+    timeframe: 'day' | 'week' | 'month' | 'year' | 'all' = 'all',
+  ) {
+    // Convert string cursor back to a numeric offset
+    const skipCount =
+      lastCursor && !isNaN(parseInt(lastCursor, 10))
+        ? parseInt(lastCursor, 10)
+        : 0;
+
+    let dateFilter = {};
+    if (timeframe && timeframe !== 'all') {
+      const now = new Date();
+      const fromDate = new Date();
+      switch (timeframe) {
+        case 'day':
+          fromDate.setDate(now.getDate() - 1);
+          break;
+        case 'week':
+          fromDate.setDate(now.getDate() - 7);
+          break;
+        case 'month':
+          fromDate.setMonth(now.getMonth() - 1);
+          break;
+        case 'year':
+          fromDate.setFullYear(now.getFullYear() - 1);
+          break;
+      }
+      dateFilter = { createdAt: { gte: fromDate } };
+    }
+
+    const result: PostWithRelations[] = await this.prisma.post.findMany({
+      take: take + 1,
+      skip: skipCount,
       where: {
-        id,
+        ...dateFilter,
       },
-      data: postDto,
+      orderBy: [
+        { postLikes: { _count: 'desc' } },
+        { createdAt: 'desc' }, // Stable sort tie-breaker
+      ],
+      include: {
+        postAssets: { include: { asset: true } },
+        _count: { select: { postLikes: true } },
+      },
     });
 
-    Logger.log(`Post ${post.id} updated`, 'PostsService');
+    const hasNextPage = result.length > take;
+    if (hasNextPage) {
+      result.pop();
+    }
 
-    return post;
+    const nextCursorStr = hasNextPage ? (skipCount + take).toString() : null;
+
+    Logger.log(`Found ${result.length} popular posts`, 'PostsService');
+
+    return {
+      data: result,
+      metaData: {
+        hasNextPage,
+        lastCursor: nextCursorStr,
+      },
+    };
+  }
+
+  async update(id: string, postDto: UpdatePostDto, userId: string) {
+    return this.prisma.$transaction(async (prisma) => {
+      const post = await prisma.post.update({
+        where: { id },
+        data: { content: postDto.content },
+      });
+
+      const existingAssets = await prisma.postAsset.findMany({
+        where: { postId: id },
+      });
+      const existingAssetIds = existingAssets.map((asset) => asset.assetId);
+      const newAssetIds = postDto.assetIds || [];
+
+      const assetsToDelete = existingAssetIds.filter(
+        (assetId) => !newAssetIds.includes(assetId),
+      );
+      const assetsToAdd = newAssetIds.filter(
+        (assetId) => !existingAssetIds.includes(assetId),
+      );
+
+      if (assetsToDelete.length > 0) {
+        await prisma.postAsset.deleteMany({
+          where: {
+            postId: id,
+            assetId: { in: assetsToDelete },
+          },
+        });
+      }
+
+      if (assetsToAdd.length > 0) {
+        await prisma.postAsset.createMany({
+          data: assetsToAdd.map((assetId) => ({
+            postId: id,
+            assetId: assetId,
+            createdById: userId,
+          })),
+        });
+      }
+
+      Logger.log(`Post ${post.id} updated`, 'PostsService');
+      return post;
+    });
   }
 
   async delete(id: string) {
@@ -320,44 +463,81 @@ export class PostsService {
     return linked;
   }
 
-  async getFeed(profileId: string, take: number, lastCursor?: string) {
+  async getFeed(
+    profileId: string,
+    take: number,
+    lastCursor?: string,
+    ascOrDesc: 'asc' | 'desc' = 'desc',
+    by: 'createdAt' | 'likes' = 'createdAt',
+    timeframe: 'day' | 'week' | 'month' | 'year' | 'all' = 'all',
+  ) {
     const follows = await this.prisma.profileFollow.findMany({
-      where: {
-        followerProfileId: profileId,
-      },
-      select: {
-        followingProfileId: true,
-      },
+      where: { followerProfileId: profileId },
+      select: { followingProfileId: true },
     });
     const followingProfileIds = follows.map(
       (follow) => follow.followingProfileId,
     );
 
-    const result = await this.prisma.post.findMany({
+    const isLikesSort = by === 'likes';
+
+    const orderBy = isLikesSort
+      ? [
+          { postLikes: { _count: ascOrDesc } },
+          { createdAt: ascOrDesc }, // Tie-breaker for stable sorting
+        ]
+      : { createdAt: ascOrDesc };
+
+    let paginationParams = {};
+    if (lastCursor) {
+      if (isLikesSort) {
+        const skipCount = parseInt(lastCursor, 10);
+        paginationParams = { skip: isNaN(skipCount) ? 0 : skipCount };
+      } else {
+        paginationParams = { skip: 1, cursor: { id: lastCursor } };
+      }
+    }
+
+    let dateFilter = {};
+    if (timeframe && timeframe !== 'all') {
+      const now = new Date();
+      const fromDate = new Date();
+      switch (timeframe) {
+        case 'day':
+          fromDate.setDate(now.getDate() - 1);
+          break;
+        case 'week':
+          fromDate.setDate(now.getDate() - 7);
+          break;
+        case 'month':
+          fromDate.setMonth(now.getMonth() - 1);
+          break;
+        case 'year':
+          fromDate.setFullYear(now.getFullYear() - 1);
+          break;
+      }
+      dateFilter = { createdAt: { gte: fromDate } };
+    }
+
+    const result: PostWithRelations[] = await this.prisma.post.findMany({
       take: take + 1,
-      ...(lastCursor && {
-        skip: 1,
-        cursor: {
-          id: lastCursor,
-        },
-      }),
+      ...paginationParams,
       where: {
-        profileId: {
-          in: followingProfileIds,
-        },
+        profileId: { in: followingProfileIds },
+        ...dateFilter,
       },
-      orderBy: {
-        createdAt: 'desc',
+      include: {
+        postAssets: { include: { asset: true } },
+        postLikes: { where: { profileId: profileId } },
+        _count: { select: { postLikes: true } },
       },
+      orderBy,
     });
 
-    if (result.length == 0) {
+    if (result.length === 0) {
       return {
         data: [],
-        metaData: {
-          hasNextPage: false,
-          lastCursor: null,
-        },
+        metaData: { hasNextPage: false, lastCursor: null },
       };
     }
 
@@ -366,8 +546,18 @@ export class PostsService {
       result.pop();
     }
 
-    const lastPostInResults = result[result.length - 1];
-    const cursor = lastPostInResults.id;
+    let nextCursorStr: string | null = null;
+    if (hasNextPage) {
+      if (isLikesSort) {
+        const currentSkip =
+          lastCursor && !isNaN(parseInt(lastCursor, 10))
+            ? parseInt(lastCursor, 10)
+            : 0;
+        nextCursorStr = (currentSkip + take).toString();
+      } else {
+        nextCursorStr = result[result.length - 1].id;
+      }
+    }
 
     Logger.log(
       `Found ${result.length} feed posts for profile ${profileId}`,
@@ -378,13 +568,13 @@ export class PostsService {
       data: result,
       metaData: {
         hasNextPage,
-        lastCursor: cursor,
+        lastCursor: nextCursorStr,
       },
     };
   }
 
   async search(query: string, take: number, lastCursor?: string) {
-    const result = await this.prisma.post.findMany({
+    const result: PostWithRelations[] = await this.prisma.post.findMany({
       take: take + 1,
       ...(lastCursor && {
         skip: 1,
@@ -398,6 +588,13 @@ export class PostsService {
       where: {
         content: {
           contains: query,
+        },
+      },
+      include: {
+        postAssets: {
+          include: {
+            asset: true,
+          },
         },
       },
     });

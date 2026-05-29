@@ -252,7 +252,7 @@ export default function EditProfile() {
                     />
                     <label
                         htmlFor="avatarUpload"
-                        className={`bg-[#0095F6] hover:bg-[#1877F2] text-white px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors shrink-0 cursor-pointer ${isUploadingPhoto ? "opacity-50 cursor-not-allowed" : ""}`}
+                        className={`bg-black hover:bg-neutral-800 text-white font-medium py-3 px-4 rounded transition-colors duration-200 ${isUploadingPhoto ? "opacity-50 cursor-not-allowed" : ""}`}
                     >
                         {isUploadingPhoto ? "Uploading..." : "Change photo"}
                     </label>
@@ -371,7 +371,7 @@ export default function EditProfile() {
                             name="isPublic"
                             checked={formData.isPublic}
                             onChange={handleChange}
-                            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                            className="w-4 h-4 text-black bg-gray-100 border-gray-300 rounded focus:bg-black focus:ring-1"
                         />
                         <label
                             htmlFor="isPublic"
@@ -388,7 +388,7 @@ export default function EditProfile() {
                         <button
                             type="submit"
                             disabled={isSaving}
-                            className="bg-[#0095F6] hover:bg-[#1877F2] text-white px-6 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="bg-black hover:bg-neutral-800 text-white font-medium py-3 px-4 rounded transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isSaving ? "Saving..." : "Submit"}
                         </button>
@@ -408,7 +408,6 @@ export default function EditProfile() {
                 </div>
             </form>
 
-            {/* Restored Delete Button Styling */}
             <div className='flex flex-row mt-2'>
                 <div className="flex-1"></div>
                 <button

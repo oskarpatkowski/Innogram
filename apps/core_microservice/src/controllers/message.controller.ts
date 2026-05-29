@@ -42,6 +42,11 @@ export class MessageControler {
     return await this.messageService.getAll();
   }
 
+  @Get('/chat/:id')
+  async getForChat(@Param('id') id: string) {
+    return await this.messageService.getForChat(id);
+  }
+
   @Put(':id')
   async update(
     @Param('id') id: string,

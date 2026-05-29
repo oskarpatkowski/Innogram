@@ -81,6 +81,33 @@ export class MessageService {
     }
   }
 
+  async getForChat(chatId: string) {
+    try {
+      const messages = await this.prisma.message.findMany({
+        where: {
+          chatId: chatId,
+        },
+      });
+
+      if (messages.length > 0) {
+        Logger.log(
+          `Found ${messages.length} messages for chat: ${chatId}`,
+          'MessageService',
+        );
+      } else {
+        Logger.log(`No messages found for chat: ${chatId}`, 'MessageService');
+      }
+
+      return messages;
+    } catch (error) {
+      Logger.error(
+        `Failed to get messages for chat ${chatId}: ${error instanceof Error ? error.message : String(error)}`,
+        error instanceof Error ? error.stack : undefined,
+        'MessageService',
+      );
+    }
+  }
+
   async update(id: string, messageDto: UpdateChatMessageDto) {
     try {
       const message = await this.prisma.message.update({

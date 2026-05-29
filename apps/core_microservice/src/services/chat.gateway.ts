@@ -20,10 +20,6 @@ interface AuthenticatedSocket extends Socket {
 }
 
 @WebSocketGateway({
-  cors: {
-    origin: '*',
-    credentials: true,
-  },
   namespace: 'chat',
 })
 export class ChatGateway

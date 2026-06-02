@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { CreateChatDto } from '../../dto/create.chat.dto';
 import { UpdateChatDto } from '../../dto/update.chat.dto';
 import { PrismaService } from '../services/prisma.service';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class ChatsService {
@@ -100,12 +101,24 @@ export class ChatsService {
     return chats;
   }
 
-  async update(id: string, chatDto: UpdateChatDto) {
+  async update(id: string, chatDto: UpdateChatDto, updaterUserId: string) {
+    const { memberProfileIds, ...updateData } = chatDto;
+
+    const prismaUpdateData: Prisma.ChatUpdateInput = { ...updateData };
+
+    if (memberProfileIds) {
+      prismaUpdateData.participants = {
+        deleteMany: {},
+        create: memberProfileIds.map((profileId) => ({
+          profileId: profileId,
+          createdById: updaterUserId,
+        })),
+      };
+    }
+
     const chat = await this.prisma.chat.update({
-      where: {
-        id,
-      },
-      data: chatDto,
+      where: { id },
+      data: prismaUpdateData,
     });
 
     Logger.log(`Chat ${chat.id} updated`, 'ChatsService');

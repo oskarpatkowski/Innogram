@@ -39,12 +39,6 @@ export default function ChatLayout ({ children }: { children: ReactNode }) {
                     >
                         Create a chat
                     </Link>
-                    <Link
-                        href='/app/chat/group/'
-                        className={getLinkStyle('/app/chat/group/')}
-                    >
-                        Group chats
-                    </Link>
                 </div>
             </nav>
             <main className="flex-1 min-w-0 bg-white">

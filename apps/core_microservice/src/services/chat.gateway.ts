@@ -14,6 +14,7 @@ import { CreateChatMessageDto } from '../../dto/create.message.dto';
 import { AppJwtPayload, AuthService } from '../services/auth.service';
 import { ChatsService } from '../services/chats.service';
 import { MessageService } from '../services/message.service';
+import { PrismaService } from './prisma.service';
 
 interface AuthenticatedSocket extends Socket {
   user: AppJwtPayload;
@@ -21,6 +22,10 @@ interface AuthenticatedSocket extends Socket {
 
 @WebSocketGateway({
   namespace: 'chat',
+  cors: {
+    origin: process.env.FRONTEND_URL || 'http://localhost:3001',
+    credentials: true,
+  },
 })
 export class ChatGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
@@ -34,6 +39,7 @@ export class ChatGateway
     private readonly authService: AuthService,
     private readonly messageService: MessageService,
     private readonly chatsService: ChatsService,
+    private readonly prisma: PrismaService,
   ) {}
 
   afterInit() {
@@ -103,11 +109,23 @@ export class ChatGateway
       client.user.userId,
     );
 
-    this.server.to(payload.chatId).emit('newMessage', message);
+    const messageWithProfile = await this.prisma.message.findUnique({
+      where: { id: message?.id },
+      include: {
+        profile: true,
+        assets: {
+          include: {
+            asset: true,
+          },
+        },
+      },
+    });
+
+    client.broadcast.to(payload.chatId).emit('newMessage', messageWithProfile);
     this.logger.log(
       `Profile ${client.user.profileId} sent message to chat ${payload.chatId}`,
     );
-    return message;
+    return messageWithProfile;
   }
 
   @SubscribeMessage('editMessage')

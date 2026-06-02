@@ -44,8 +44,12 @@ export class ChatsController {
   }
 
   @Put(':id')
-  async update(@Param('id') id: string, @Body() chatDto: UpdateChatDto) {
-    return await this.chatsService.update(id, chatDto);
+  async update(
+    @Param('id') id: string,
+    @Body() chatDto: UpdateChatDto,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return await this.chatsService.update(id, chatDto, request.user.userId);
   }
 
   @Delete(':id')

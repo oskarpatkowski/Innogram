@@ -17,7 +17,7 @@ import { MessageService } from '../services/message.service';
 
 @Controller('messages')
 @UseGuards(AccessGuard)
-export class MessageControler {
+export class MessageController {
   constructor(private readonly messageService: MessageService) {}
 
   @Post()

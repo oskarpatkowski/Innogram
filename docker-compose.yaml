@@ -38,6 +38,7 @@ services:
       NODE_ENV: development
       DATABASE_URL: postgresql://${POSTGRES_NAME}:${POSTGRES_PASSWD}@db:5432/${POSTGRES_NAME}
       AUTH_SERVICE_URL: "http://auth:${AUTH_PORT}"
+      FRONTEND_URL: "http://localhost:${CLIENT_PORT}"
     depends_on:
       db:
         condition: service_healthy
@@ -110,7 +111,7 @@ services:
       - "${AUTH_PORT}:${AUTH_PORT}"
     environment:
       NODE_ENV: development
-      ALLOWED_ORIGIN: "http://localhost:${CORE_PORT}"
+      ALLOWED_ORIGIN: "http://localhost:${CLIENT_PORT}"
       DATABASE_URL: postgresql://${POSTGRES_NAME}:${POSTGRES_PASSWD}@db:5432/${POSTGRES_NAME}
       REDIS_HOST: redis
       REDIS_PORT: 6379

@@ -26,7 +26,17 @@ export class MessageService {
         }
       }
 
-      return message;
+      return this.prisma.message.findUnique({
+        where: { id: message.id },
+        include: {
+          profile: true,
+          assets: {
+            include: {
+              asset: true,
+            },
+          },
+        },
+      });
     } catch (error) {
       Logger.error(
         `Failed to create message: ${error instanceof Error ? error.message : String(error)}`,
@@ -41,6 +51,14 @@ export class MessageService {
     try {
       const message = await this.prisma.message.findUnique({
         where: { id },
+        include: {
+          profile: true,
+          assets: {
+            include: {
+              asset: true,
+            },
+          },
+        },
       });
 
       if (message) {
@@ -62,7 +80,16 @@ export class MessageService {
 
   async getAll() {
     try {
-      const messages = await this.prisma.message.findMany();
+      const messages = await this.prisma.message.findMany({
+        include: {
+          profile: true,
+          assets: {
+            include: {
+              asset: true,
+            },
+          },
+        },
+      });
 
       if (messages.length > 0) {
         Logger.log(`Found ${messages.length} messages`, 'MessageService');
@@ -86,6 +113,14 @@ export class MessageService {
       const messages = await this.prisma.message.findMany({
         where: {
           chatId: chatId,
+        },
+        include: {
+          profile: true,
+          assets: {
+            include: {
+              asset: true,
+            },
+          },
         },
       });
 
@@ -113,6 +148,14 @@ export class MessageService {
       const message = await this.prisma.message.update({
         where: { id },
         data: messageDto,
+        include: {
+          profile: true,
+          assets: {
+            include: {
+              asset: true,
+            },
+          },
+        },
       });
 
       Logger.log(`Message ${message.id} updated`, 'MessageService');

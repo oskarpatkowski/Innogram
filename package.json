@@ -26,10 +26,13 @@
     "test:cov:unit": "npm run test:cov --workspace=apps/core_microservice",
     "test:cov:integration": "npm run test:integration --workspace=apps/core_microservice -- --coverage",
     "test:cov:e2e": "playwright test --project=chromium --reporter=json",
-    "merge-coverage": "node scripts/merge-coverage.js"
+    "merge-coverage": "node scripts/merge-coverage.js",
+    "test:perf:smoke": "k6 run performance/smoke-test.js",
+    "test:perf:stress": "k6 run performance/stress-test.js"
   },
   "dependencies": {
     "@faker-js/faker": "^10.4.0",
+    "@nestjs/axios": "^4.0.1",
     "@nestjs/platform-socket.io": "^11.1.19",
     "@nestjs/serve-static": "^5.0.5",
     "@nestjs/throttler": "^6.5.0",
@@ -42,7 +45,7 @@
     "ajv": "^6.14.0",
     "ansi-styles": "^4.3.0",
     "argparse": "^2.0.1",
-    "axios": "^1.15.1",
+    "axios": "^1.17.0",
     "balanced-match": "^1.0.2",
     "brace-expansion": "^1.1.13",
     "callsites": "^3.1.0",

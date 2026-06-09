@@ -14,6 +14,7 @@ import { NotificationsModule } from './modules/notifications.module';
 import { PostsModule } from './modules/posts.module';
 import { UsersModule } from './modules/users.module';
 import { PrismaService } from './services/prisma.service';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { PrismaService } from './services/prisma.service';
         index: false,
       },
     }),
+    HealthModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService, providePrismaClientExceptionFilter()],

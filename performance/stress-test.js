@@ -27,8 +27,8 @@ export default function () {
   sleep(1);
 
   const loginPayload = JSON.stringify({
+    //global k6 variable
     // eslint-disable-next-line no-undef
-    // global k6 variable
     email: `user${__VU}@example.com`,
     password: 'password123',
   });

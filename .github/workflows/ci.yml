@@ -40,6 +40,9 @@ jobs:
           cache: "npm"
 
       - run: npm ci
+      
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
 
       - name: Run Migrations
         run: npx turbo run migrate:deploy
@@ -47,7 +50,19 @@ jobs:
       - run: npx turbo build
 
       - name: Run Tests
-        run: npx turbo test
+        run: |
+          npm run test:cov:unit
+          npm run test:cov:integration
+          npm run test:cov:e2e
+
+      - name: Merge Coverage
+        run: npm run merge-coverage
+        
+      - name: Upload Coverage Report
+        uses: actions/upload-artifact@v2
+        with:
+          name: coverage-report
+          path: coverage/merged
 
       - run: npx turbo lint
       - run: npx turbo check-types

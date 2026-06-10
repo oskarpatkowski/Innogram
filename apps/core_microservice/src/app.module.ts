@@ -15,6 +15,10 @@ import { PostsModule } from './modules/posts.module';
 import { UsersModule } from './modules/users.module';
 import { PrismaService } from './services/prisma.service';
 import { HealthModule } from './health/health.module';
+import { PerformanceModule } from './modules/performance.module';
+import { APP_INTERCEPTOR } from '@nestjs/core';
+import { PerformanceInterceptor } from './interceptors/performance.interceptor';
+import { RedisModule } from './modules/redis.module';
 
 @Module({
   imports: [
@@ -25,7 +29,10 @@ import { HealthModule } from './health/health.module';
     PostsModule,
     UsersModule,
     AssetsModule,
-    ConfigModule.forRoot(),
+    RedisModule,
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
     ThrottlerModule.forRoot({
       throttlers: [
         {
@@ -42,9 +49,18 @@ import { HealthModule } from './health/health.module';
       },
     }),
     HealthModule,
+    PerformanceModule,
   ],
   controllers: [AppController],
-  providers: [AppService, PrismaService, providePrismaClientExceptionFilter()],
+  providers: [
+    AppService,
+    PrismaService,
+    providePrismaClientExceptionFilter(),
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: PerformanceInterceptor,
+    },
+  ],
   exports: [PrismaService],
 })
 export class AppModule {}

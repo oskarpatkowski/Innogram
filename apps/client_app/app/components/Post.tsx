@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { PostData, PostAsset, Asset, ProfileData } from "@/app/components/ProfileComponent";
 import { apiClient } from "@/apiClient";
+import {comment} from "postcss";
 
 interface Like {
     id: string;
@@ -16,18 +17,213 @@ interface Comment {
     profileId: string;
     postId: string;
     profile: ProfileData;
+    likes: Like[];
+    parentCommentId?: string;
+    replies?: Comment[];
 }
 
-function CommentComponent({ comment }: { comment: Comment }) {
+interface CommentComponentProps {
+    comment: Comment;
+    onCommentLike: (commentId: string) => void;
+    onReply: (parentCommentId: string, content: string) => void;
+    currentUserProfileId?: string;
+    onCommentDeleted: () => void;
+    onCommentUpdated: () => void;
+}
+
+const parseContentForMentions = (content: string) => {
+    const mentionRegex = /@([a-zA-Z0-9_.-]+)/g;
+    const parts: React.ReactNode[] = [];
+    let lastIndex = 0;
+
+    content.replace(mentionRegex, (match, username, offset) => {
+        if (offset > lastIndex) {
+            parts.push(content.substring(lastIndex, offset));
+        }
+
+        parts.push(
+            <span
+                key={offset}
+                className="text-blue-500 hover:underline cursor-pointer"
+                onClick={(e) => {
+                    e.stopPropagation();
+                    window.location.href = `/app/profile/${username}`;
+                }}
+            >
+                {match}
+            </span>
+        );
+
+        lastIndex = offset + match.length;
+        return match;
+    });
+
+    if (lastIndex < content.length) {
+        parts.push(content.substring(lastIndex));
+    }
+
+    return parts;
+};
+
+function CommentComponent({ comment, onCommentLike, onReply, currentUserProfileId, onCommentDeleted, onCommentUpdated }: CommentComponentProps) {
+    const [showReplyInput, setShowReplyInput] = useState(false);
+    const [replyContent, setReplyContent] = useState("");
+    const [showReplies, setShowReplies] = useState(false);
+    const [error, setError] = useState("");
+    const [isEditing, setIsEditing] = useState(false);
+    const [editedContent, setEditedContent] = useState(comment.content);
+
+    let isLikedByCurrentUser = false;
+    if(comment.likes){
+        isLikedByCurrentUser = comment.likes.some(like => like.profileId === currentUserProfileId);
+    }
+
+    const handleDelete = async () => {
+        try {
+            await apiClient.delete(`comments/${comment.id}`);
+            onCommentDeleted();
+        } catch  {
+            setError("couldn't delete comment")
+        }
+    }
+
+    const handleEdit = async () => {
+        try {
+            await apiClient.put(`comments/${comment.id}`, { content: editedContent });
+            setIsEditing(false);
+            onCommentUpdated();
+        } catch  {
+            setError("couldn't update comment")
+        }
+    }
+
+    const handleReplySubmit = () => {
+        if (replyContent.trim()) {
+            onReply(replyContent, comment.id);
+            setReplyContent("");
+            setShowReplyInput(false);
+        }
+    };
+
+    const isCommentCreator = currentUserProfileId === comment.profileId;
+
     return (
-        <div className="flex justify-between items-start mb-1 group">
-            <div className="pr-4 leading-[18px]">
-                <span className="font-semibold cursor-pointer mr-1">{comment.profile.username}</span>
-                <span>{comment.content}</span>
+        <div className="mb-2">
+            <div className="flex justify-between items-start group">
+                <div className="pr-4 leading-[18px]">
+                    <span className="font-semibold cursor-pointer mr-1">{comment.profile.username}</span>
+                    {isEditing ? (
+                        <input
+                            type="text"
+                            value={editedContent}
+                            onChange={(e) => setEditedContent(e.target.value)}
+                            className="w-full outline-none text-sm placeholder-[#737373] text-black border-b border-gray-200 focus:border-gray-400"
+                            onKeyPress={(e) => {
+                                if (e.key === 'Enter') {
+                                    handleEdit();
+                                }
+                            }}
+                        />
+                    ) : (
+                        <span>{parseContentForMentions(comment.content)}</span>
+                    )}
+                </div>
+                <div className="flex items-center gap-2">
+                    {comment.likes.length > 0 && (
+                        <span className="text-xs text-gray-500">{comment.likes.length}</span>
+                    )}
+                    <button
+                        onClick={() => onCommentLike(comment.id)}
+                        className="mt-1 flex-shrink-0 text-[#737373] hover:opacity-60"
+                    >
+                        <svg aria-label="Like" fill={isLikedByCurrentUser ? "black" : "currentColor"} height="12" viewBox="0 0 24 24" width="12">
+                            <path d="M16.792 3.904A4.989 4.989 0 0 1 21.5 9.122c0 3.072-2.652 4.959-5.197 7.222-2.512 2.243-3.865 3.469-4.303 3.752-.477-.309-2.143-1.823-4.303-3.752C5.141 14.072 2.5 12.167 2.5 9.122a4.989 4.989 0 0 1 4.708-5.218 4.21 4.21 0 0 1 3.675 1.941c.84 1.174 1.18 1.815 1.18 1.815l.004-.002.004.002s.34-.641 1.18-1.815a4.21 4.21 0 0 1 3.675-1.941" fill={isLikedByCurrentUser ? "black" : "none"} stroke="currentColor" strokeWidth="2"></path>
+                        </svg>
+                    </button>
+                </div>
             </div>
-            <button className="mt-1 flex-shrink-0 text-[#737373] hover:opacity-60">
-                <svg aria-label="Like" fill="currentColor" height="12" viewBox="0 0 24 24" width="12"><path d="M16.792 3.904A4.989 4.989 0 0 1 21.5 9.122c0 3.072-2.652 4.959-5.197 7.222-2.512 2.243-3.865 3.469-4.303 3.752-.477-.309-2.143-1.823-4.303-3.752C5.141 14.072 2.5 12.167 2.5 9.122a4.989 4.989 0 0 1 4.708-5.218 4.21 4.21 0 0 1 3.675 1.941c.84 1.174 1.18 1.815 1.18 1.815l.004-.002.004.002s.34-.641 1.18-1.815a4.21 4.21 0 0 1 3.675-1.941" fill="none" stroke="currentColor" strokeWidth="2"></path></svg>
-            </button>
+            <div className="flex items-center gap-2 mt-1 ml-1">
+                <button
+                    onClick={() => setShowReplyInput(!showReplyInput)}
+                    className="text-xs text-gray-500 hover:underline"
+                >
+                    {showReplyInput ? "Cancel" : "Reply"}
+                </button>
+                {isCommentCreator && (
+                    <>
+                        {isEditing ? (
+                            <button
+                                onClick={handleEdit}
+                                className="text-xs text-blue-500 hover:underline"
+                            >
+                                Save
+                            </button>
+                        ) : (
+                            <button
+                                onClick={() => setIsEditing(true)}
+                                className="text-xs text-gray-500 hover:underline"
+                            >
+                                Edit
+                            </button>
+                        )}
+                        <button
+                            onClick={handleDelete}
+                            className="text-xs text-red-500 hover:underline"
+                        >
+                            Delete
+                        </button>
+                    </>
+                )}
+            </div>
+            {showReplyInput && (
+                <div className="flex items-center mt-2 ml-4">
+                    <input
+                        type="text"
+                        placeholder={`Reply to ${comment.profile.username}...`}
+                        className="w-full outline-none text-sm placeholder-[#737373] text-black border-b border-gray-200 focus:border-gray-400"
+                        value={replyContent}
+                        onChange={(e) => setReplyContent(e.target.value)}
+                        onKeyPress={(e) => {
+                            if (e.key === 'Enter') {
+                                handleReplySubmit();
+                            }
+                        }}
+                    />
+                    <button
+                        onClick={handleReplySubmit}
+                        className="ml-2 px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600"
+                    >
+                        Post
+                    </button>
+                </div>
+            )}
+
+            {comment.replies && comment.replies.length > 0 && (
+                <div className="mt-2">
+                    <button
+                        onClick={() => setShowReplies(!showReplies)}
+                        className="text-xs text-gray-500 hover:underline ml-1"
+                    >
+                        {showReplies ? `Hide ${comment.replies.length} replies` : `View ${comment.replies.length} replies`}
+                    </button>
+                    {showReplies && (
+                        <div className="mt-2 ml-4 border-l pl-2">
+                            {comment.replies.map((reply) => (
+                                <CommentComponent
+                                    key={reply.id}
+                                    comment={reply}
+                                    onCommentLike={onCommentLike}
+                                    onReply={onReply}
+                                    currentUserProfileId={currentUserProfileId}
+                                    onCommentDeleted={onCommentDeleted}
+                                    onCommentUpdated={onCommentUpdated}
+                                />
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+            {error && <p className="text-red-500 text-xs mt-1 ml-1">{error}</p>}
         </div>
     )
 }
@@ -42,10 +238,46 @@ export default function Post(postData: PostData) {
     const [commentsVisible, setCommentsVisible] = useState(false);
     const [showCopiedPopup, setShowCopiedPopup] = useState(false);
     const [isPopupFadingOut, setIsPopupFadingOut] = useState(false);
+    const [newComment, setNewComment] = useState("");
+    const [commentError, setCommentError] = useState("");
 
-    // For media cross-fade
     const [isFading, setIsFading] = useState(false);
     const [nextImageIndex, setNextImageIndex] = useState<number | null>(null);
+
+    const fetchComments = async () => {
+        try {
+            const commentsResponse = await apiClient.get(`comments/post/${id}`);
+            const fetchedComments: Comment[] = await Promise.all(commentsResponse.data.map(async (comment: Comment) => {
+                const [profileResponse, likesResponse] = await Promise.all([
+                    apiClient.get(`profiles/${comment.profileId}`),
+                    apiClient.get(`comments/${comment.id}/likes`) // Fetch likes for each comment
+                ]);
+                return { ...comment, profile: profileResponse.data, likes: likesResponse.data };
+            }));
+
+            const commentsById: { [key: string]: Comment } = {};
+            fetchedComments.forEach(comment => {
+                commentsById[comment.id] = { ...comment, replies: [] }; // Initialize replies array
+            });
+
+            const rootComments: Comment[] = [];
+            fetchedComments.forEach(comment => {
+                if (comment.parentCommentId && commentsById[comment.parentCommentId]) {
+                    commentsById[comment.parentCommentId].replies?.push(commentsById[comment.id]);
+                } else {
+                    rootComments.push(commentsById[comment.id]);
+                }
+            });
+
+            rootComments.forEach(comment => {
+                comment.replies?.sort((a, b) => new Date(a.id).getTime() - new Date(b.id).getTime()); // Assuming ID can be used for sorting, or add createdAt to Comment interface
+            });
+
+            setComments(rootComments);
+        } catch (error) {
+            console.error("Failed to fetch comments", error);
+        }
+    };
 
     useEffect(() => {
         const fetchPostData = async () => {
@@ -53,22 +285,16 @@ export default function Post(postData: PostData) {
                 const [
                     userDataResponse,
                     likesResponse,
-                    commentsResponse,
                     currentUserDataResponse
                 ] = await Promise.all([
                     apiClient.get(`profiles/${postData.profileId}`),
                     apiClient.get(`posts/${id}/likes`),
-                    apiClient.get(`comments/post/${id}`),
                     apiClient.get('profiles/me')
                 ]);
                 setUserData(userDataResponse.data);
                 setLikes(likesResponse.data);
                 setCurrentUserData(currentUserDataResponse.data);
-                const commentsWithProfiles = await Promise.all(commentsResponse.data.map(async (comment: Comment) => {
-                    const profileResponse = await apiClient.get(`profiles/${comment.profileId}`);
-                    return { ...comment, profile: profileResponse.data };
-                }));
-                setComments(commentsWithProfiles);
+                await fetchComments(); // Fetch comments after initial data
             } catch (error) {
                 console.error("Failed to fetch post data", error);
             }
@@ -141,6 +367,12 @@ export default function Post(postData: PostData) {
         }, 2000); // Start fade-out after 2 seconds
     }
 
+    const handleUsernameClick = () => {
+        if (userData) {
+            window.location.href = `/app/profile/${userData.username}`
+        }
+    }
+
     const currentAsset = postAssets?.length > 0
         ? postAssets[currentImageIndex].asset
         : null;
@@ -148,6 +380,62 @@ export default function Post(postData: PostData) {
     const nextAsset = nextImageIndex !== null && postAssets?.length > 0
         ? postAssets[nextImageIndex].asset
         : null;
+
+    const handleCommentAdd = async (commentContent: string, parentCommentId?: string) => {
+        if (!commentContent.trim()) {
+            setCommentError("Comment cannot be empty.");
+            return;
+        }
+        try {
+            const payload = parentCommentId ? {
+                content: commentContent,
+                postId: id,
+                parentCommentId: parentCommentId,
+            } : {
+                content: commentContent,
+                postId: id,
+            };
+
+            await apiClient.post('comments', payload);
+            setNewComment('');
+            setCommentError('');
+            await fetchComments(); // Re-fetch comments to show the new one
+        } catch (error) {
+            console.error("Failed to add comment", error);
+            setCommentError('Failed to add comment');
+        }
+    }
+
+    const handleCommentLike = async (commentId: string) => {
+        try {
+
+            const findCommentInTree = (commentsArray: Comment[], commentId: string): Comment | undefined => {
+                for (const comment of commentsArray) {
+                    if (comment.id === commentId) {
+                        return comment;
+                    }
+                    if (comment.replies && comment.replies.length > 0) {
+                        const found = findCommentInTree(comment.replies, commentId);
+                        if (found) return found;
+                    }
+                }
+                return undefined;
+            };
+
+            const commentToLike = findCommentInTree(comments, commentId);
+            const hasLiked = commentToLike?.likes.some(like => like.profileId === currentUserData?.id);
+
+            if (hasLiked) {
+                await apiClient.delete(`comments/${commentId}/like`);
+            } else {
+                await apiClient.post(`comments/${commentId}/like`);
+            }
+            await fetchComments(); // Re-fetch comments to update like counts and status
+        } catch (error) {
+            console.error("Failed to like comment", error);
+            setCommentError("Couldn't like comment");
+        }
+    }
 
     return (
         <div className="max-w-[470px] w-full mx-auto bg-white border-b border-gray-200 pb-2 mb-6 font-sans text-sm text-black relative">
@@ -174,7 +462,10 @@ export default function Post(postData: PostData) {
                         </div>
                     </div>
                     <div className="flex items-center">
-                        <span className="font-semibold cursor-pointer hover:text-gray-500">
+                        <span
+                            className="font-semibold cursor-pointer hover:text-gray-500"
+                            onClick={handleUsernameClick}
+                        >
                             {userData ? userData.username : "..."}
                         </span>
                         <span className="text-[#737373] ml-1">
@@ -209,8 +500,6 @@ export default function Post(postData: PostData) {
                         </div>
                     )}
 
-                    {/* Current Asset (Top Layer, fading out) */}
-                    {/* FIX: Transition duration changes to 0s instantly when isFading is false to prevent flash fade-in */}
                     <div className={`absolute inset-0 z-10 transition-opacity ${isFading ? 'duration-300 opacity-0' : 'duration-0 opacity-100'}`}>
                         {currentAsset.fileType.startsWith('video/') ? (
                             <video
@@ -250,7 +539,7 @@ export default function Post(postData: PostData) {
                     )}
                 </div>
             )}
-
+            <span className="text-gray-500 text-s ml-2 italic">{postData.isArchived ? "Archived" : ""}</span>
             <div className="flex justify-between items-center px-3 py-2 mt-1">
                 <div className="flex gap-4 items-center">
                     <button
@@ -270,15 +559,18 @@ export default function Post(postData: PostData) {
                         className="hover:opacity-60 transition-opacity"
                         onClick={handleCommentsVisible}
                     >
-                        <svg aria-label="Comment" fill="currentColor" height="24" viewBox="0 0 24 24" width="24">
-                            <path
-                                d="M20.656 17.008a9.993 9.993 0 1 0-3.59 3.615L22 22Z"
-                                fill={commentsVisible ? "black" : "none"}
-                                stroke={commentsVisible ? "black" : "currentColor"}
-                                strokeLinejoin="round"
-                                strokeWidth="2"
-                            ></path>
-                        </svg>
+                        <div className="flex">
+                            <svg aria-label="Comment" fill="currentColor" height="24" viewBox="0 0 24 24" width="24">
+                                <path
+                                    d="M20.656 17.008a9.993 9.993 0 1 0-3.59 3.615L22 22Z"
+                                    fill={commentsVisible ? "black" : "none"}
+                                    stroke={commentsVisible ? "black" : "currentColor"}
+                                    strokeLinejoin="round"
+                                    strokeWidth="2"
+                                ></path>
+                            </svg>
+                            <span className="ml-2 text-gray-700 font-semibold">{comments.length}</span>
+                        </div>
                     </button>
                     <button
                         className="hover:opacity-60 transition-opacity"
@@ -303,14 +595,22 @@ export default function Post(postData: PostData) {
                     </span>
                 )}
                 <span>
-                    {content}
+                    {parseContentForMentions(content)}
                 </span>
             </div>
 
             {comments.length > 0 && (
                 <div className="px-3 mb-2">
                     {(commentsVisible ? comments : comments.slice(0, 2)).map((comment) => (
-                        <CommentComponent key={comment.id} comment={comment} />
+                        <CommentComponent
+                            key={comment.id}
+                            comment={comment}
+                            onCommentLike={handleCommentLike}
+                            onReply={handleCommentAdd}
+                            currentUserProfileId={currentUserData?.id}
+                            onCommentDeleted={fetchComments}
+                            onCommentUpdated={fetchComments}
+                        />
                     ))}
                 </div>
             )}
@@ -320,8 +620,24 @@ export default function Post(postData: PostData) {
                     type="text"
                     placeholder="Add a comment..."
                     className="w-full outline-none text-sm placeholder-[#737373] text-black"
+                    value={newComment}
+                    onChange={(event) => setNewComment(event.target.value)}
+                    onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                            handleCommentAdd(newComment);
+                        }
+                    }}
                 />
+                <button
+                    onClick={() => handleCommentAdd(newComment)}
+                    className="ml-2 px-3 py-1 bg-black text-white text-sm rounded hover:bg-gray-700"
+                    disabled={!newComment.trim()}
+                >
+                    Post
+                </button>
             </div>
+            {commentError && <p className="text-red-500 text-xs px-3 mt-1">{commentError}</p>}
+
 
             {showCopiedPopup && (
                 <div className={`absolute bottom-4 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs px-3 py-1.5 rounded-md shadow-lg ${isPopupFadingOut ? 'animate-fade-out' : 'animate-fade-in'}`}>

@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  NotFoundException,
   Param,
   Patch,
   Post,
@@ -26,24 +27,9 @@ export class ProfileController {
     return await this.profileService.create(profileDto);
   }
 
-  @Get('/follow-requests')
-  async getFollowRequests(@Req() request: AuthenticatedRequest) {
-    return await this.profileService.getFollowRequests(request.user.profileId);
-  }
-
-  @Get('/me')
-  async getMe(@Req() request: AuthenticatedRequest) {
-    return await this.profileService.getById(request.user.profileId);
-  }
-
-  @Get('/followers')
-  async getFollowers(@Req() request: AuthenticatedRequest) {
-    return await this.profileService.getFollowers(request.user.profileId);
-  }
-
-  @Get('/following')
-  async getFollowing(@Req() request: AuthenticatedRequest) {
-    return await this.profileService.getFollowing(request.user.profileId);
+  @Get('/following/:id')
+  async getFollowingById(@Param('id') id: string) {
+    return await this.profileService.getFollowing(id);
   }
 
   @Get('/followers/:id')
@@ -51,9 +37,55 @@ export class ProfileController {
     return await this.profileService.getFollowers(id);
   }
 
+  @Get('/following')
+  async getFollowing(@Req() request: AuthenticatedRequest) {
+    return await this.profileService.getFollowing(request.user.profileId);
+  }
+
+  @Get('/followers')
+  async getFollowers(@Req() request: AuthenticatedRequest) {
+    return await this.profileService.getFollowers(request.user.profileId);
+  }
+
+  @Get('/me')
+  async getMe(@Req() request: AuthenticatedRequest) {
+    return await this.profileService.getById(request.user.profileId);
+  }
+
+  @Get('/username/:username')
+  async getIdByUsername(@Param('username') username: string) {
+    const profileId = await this.profileService.getIdByUsername(username);
+    if (!profileId) {
+      throw new NotFoundException(
+        `Profile with username ${username} not found`,
+      );
+    }
+    return profileId;
+  }
+
+  @Get('/follow-requests')
+  async getFollowRequests(@Req() request: AuthenticatedRequest) {
+    return await this.profileService.getFollowRequests(request.user.profileId);
+  }
+
+  @Get('/follow-requests/pending/:followingProfileId')
+  async getPendingFollowRequest(
+    @Param('followingProfileId') followingProfileId: string,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return await this.profileService.getPendingFollowRequest(
+      request.user.profileId,
+      followingProfileId,
+    );
+  }
+
   @Get(':id')
   async getById(@Param('id') id: string) {
-    return await this.profileService.getById(id);
+    const profile = await this.profileService.getById(id);
+    if (!profile) {
+      throw new NotFoundException(`Profile with ID ${id} not found`);
+    }
+    return profile;
   }
 
   @Get()
@@ -89,6 +121,17 @@ export class ProfileController {
   ) {
     return await this.profileService.unfollow(
       followingProfileId,
+      request.user.profileId,
+    );
+  }
+
+  @Delete('/followers/:followerProfileId')
+  async removeFollower(
+    @Param('followerProfileId') followerProfileId: string,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return await this.profileService.removeFollower(
+      followerProfileId,
       request.user.profileId,
     );
   }

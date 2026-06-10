@@ -37,6 +37,14 @@ export class NotificationsService {
     return notification;
   }
 
+  async getByUserId(id: string) {
+    return this.prisma.notification.findMany({
+      where: {
+        recipientId: id,
+      },
+    });
+  }
+
   async getAll() {
     const notifications = await this.prisma.notification.findMany();
 

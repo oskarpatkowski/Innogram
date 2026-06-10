@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { CreatePostDto } from '../../dto/create.post.dto';
 import { UpdatePostDto } from '../../dto/update.post.dto';
 import { PrismaService } from '../services/prisma.service';
+import { Prisma } from '@prisma/client';
 
 type PostWithRelations = {
   id: string;
@@ -134,11 +135,27 @@ export class PostsService {
         },
       }),
       where: {
-        postMentions: {
-          some: {
-            profileId: profileId,
+        isArchived: false,
+        OR: [
+          {
+            postMentions: {
+              some: {
+                profileId: profileId,
+              },
+            },
           },
-        },
+          {
+            comments: {
+              some: {
+                commentMentions: {
+                  some: {
+                    profileId: profileId,
+                  },
+                },
+              },
+            },
+          },
+        ],
       },
       include: {
         postAssets: {
@@ -184,10 +201,11 @@ export class PostsService {
     };
   }
 
-  async getById(id: string) {
-    const post = await this.prisma.post.findUnique({
+  async getById(id: string, viewerProfileId?: string) {
+    const post = await this.prisma.post.findFirst({
       where: {
         id,
+        OR: [{ isArchived: false }, { profileId: viewerProfileId }],
       },
       include: {
         postAssets: {
@@ -195,19 +213,88 @@ export class PostsService {
             asset: true,
           },
         },
+        profile: true,
       },
     });
 
-    if (post) {
-      Logger.log(`Post ${post.id} found`, 'PostsService');
-    } else {
+    if (!post) {
       Logger.log(`Post ${id} not found`, 'PostsService');
+      return null;
+    }
+    const isOwner = post.profileId === viewerProfileId;
+
+    if (post.profile.isPublic || isOwner) {
+      Logger.log(`Post ${post.id} found`, 'PostsService');
+      return post;
     }
 
-    return post;
+    const isFollowing = await this.prisma.profileFollow.findFirst({
+      where: {
+        followerProfileId: viewerProfileId,
+        followingProfileId: post.profileId,
+        accepted: true,
+      },
+    });
+
+    if (isFollowing) {
+      Logger.log(`Post ${post.id} found`, 'PostsService');
+      return post;
+    }
+
+    Logger.log(`Post ${id} not found`, 'PostsService');
+    return null;
   }
 
-  async getProfilePosts(profileId: string, take: number, lastCursor?: string) {
+  async getProfilePosts(
+    profileId: string,
+    take: number,
+    lastCursor?: string,
+    currentViewerProfileId?: string,
+  ) {
+    const profile = await this.prisma.profile.findUnique({
+      where: { id: profileId },
+    });
+
+    if (!profile) {
+      return {
+        data: [],
+        metaData: {
+          hasNextPage: false,
+          lastCursor: null,
+        },
+      };
+    }
+
+    const isOwner = profileId === currentViewerProfileId;
+
+    if (!profile.isPublic && !isOwner) {
+      const isFollowing = await this.prisma.profileFollow.findFirst({
+        where: {
+          followerProfileId: currentViewerProfileId,
+          followingProfileId: profileId,
+          accepted: true,
+        },
+      });
+
+      if (!isFollowing) {
+        return {
+          data: [],
+          metaData: {
+            hasNextPage: false,
+            lastCursor: null,
+          },
+        };
+      }
+    }
+
+    const whereClause: Prisma.PostWhereInput = {
+      profileId: profileId,
+    };
+
+    if (!isOwner) {
+      whereClause.isArchived = false;
+    }
+
     const result: PostWithRelations[] = await this.prisma.post.findMany({
       take: take + 1,
       ...(lastCursor && {
@@ -216,9 +303,7 @@ export class PostsService {
           id: lastCursor,
         },
       }),
-      where: {
-        profileId: profileId,
-      },
+      where: whereClause,
       include: {
         postAssets: {
           include: {
@@ -277,6 +362,21 @@ export class PostsService {
     return post;
   }
 
+  async setPostAsUnarchived(id: string) {
+    const post = await this.prisma.post.update({
+      where: {
+        id,
+      },
+      data: {
+        isArchived: false,
+      },
+    });
+
+    Logger.log(`Post ${post.id} unarchived`, 'PostsService');
+
+    return post;
+  }
+
   async getAll(take: number, lastCursor?: string) {
     const result: PostWithRelations[] = await this.prisma.post.findMany({
       take: take + 1,
@@ -286,6 +386,12 @@ export class PostsService {
           id: lastCursor,
         },
       }),
+      where: {
+        isArchived: false,
+        profile: {
+          isPublic: true,
+        },
+      },
       orderBy: {
         createdAt: 'desc',
       },
@@ -356,6 +462,10 @@ export class PostsService {
       take: take + 1,
       skip: skipCount,
       where: {
+        isArchived: false,
+        profile: {
+          isPublic: true,
+        },
         ...dateFilter,
       },
       orderBy: [
@@ -472,7 +582,7 @@ export class PostsService {
     timeframe: 'day' | 'week' | 'month' | 'year' | 'all' = 'all',
   ) {
     const follows = await this.prisma.profileFollow.findMany({
-      where: { followerProfileId: profileId },
+      where: { followerProfileId: profileId, accepted: true },
       select: { followingProfileId: true },
     });
     const followingProfileIds = follows.map(
@@ -523,7 +633,17 @@ export class PostsService {
       take: take + 1,
       ...paginationParams,
       where: {
-        profileId: { in: followingProfileIds },
+        OR: [
+          {
+            profileId: { in: followingProfileIds },
+          },
+          {
+            profile: {
+              isPublic: true,
+            },
+          },
+        ],
+        isArchived: false, // Exclude archived posts
         ...dateFilter,
       },
       include: {
@@ -586,8 +706,12 @@ export class PostsService {
         createdAt: 'desc',
       },
       where: {
+        isArchived: false,
         content: {
           contains: query,
+        },
+        profile: {
+          isPublic: true,
         },
       },
       include: {

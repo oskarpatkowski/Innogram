@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { apiClient } from "@/apiClient";
 
 export interface ProfileData {
@@ -48,6 +48,10 @@ interface UserProfileProps {
 
 export function UserProfile({ profileId }: UserProfileProps) {
     const [profile, setProfile] = useState<ProfileData | null>(null);
+    const [currentUser, setCurrentUser] = useState<ProfileData | null>(null);
+    const [isFollowing, setIsFollowing] = useState(false);
+    const [isRequested, setIsRequested] = useState(false);
+    const [isFollowActionLoading, setIsFollowActionLoading] = useState(false);
     const [posts, setPosts] = useState<PostData[]>([]);
     const [stats, setStats] = useState({ followers: 0, following: 0, posts: 0 });
     const [isLoadingProfile, setIsLoadingProfile] = useState(true);
@@ -58,14 +62,32 @@ export function UserProfile({ profileId }: UserProfileProps) {
 
     const observer = useRef<IntersectionObserver>(null);
 
-    // 1. Handle profile meta data queries
     useEffect(() => {
-        const fetchProfileData = async () => {
+        let ignore = false;
+
+        const fetchInitialData = async () => {
             setIsLoadingProfile(true);
+            setProfile(null);
+
             try {
-                const profileRoute = profileId ? `/profiles/${profileId}` : "/profiles/me";
+                const { data: meData } = await apiClient.get("/profiles/me");
+                if (ignore) return;
+                setCurrentUser(meData);
+
+                let profileRoute = `/profiles/${profileId}`;
+                if (!profileId) {
+                    profileRoute = "/profiles/me";
+                }
+
                 const { data: profileData } = await apiClient.get(profileRoute);
-                setProfile(profileData);
+
+                if (ignore) return;
+
+                if (!profileData || (profileId && profileData.id !== profileId)) {
+                    setProfile(null)
+                } else {
+                    setProfile(profileData);
+                }
 
                 const currentProfileId = profileId || profileData.id;
 
@@ -73,40 +95,75 @@ export function UserProfile({ profileId }: UserProfileProps) {
                 let followingCount = 0;
                 try {
                     const followersRes = await apiClient.get(
-                        profileId ? `/profiles/followers/${currentProfileId}` : "/profiles/followers"
+                        `/profiles/followers/${currentProfileId}`
                     );
                     followersCount = followersRes.data?.length || 0;
 
-                    const followingRes = await apiClient.get("/profiles/following");
+                    if (profileId && meData) {
+                        const isUserFollowing = followersRes.data.some(
+                            (follower: ProfileData) => follower.id === meData.id
+                        );
+                        if (!ignore) setIsFollowing(isUserFollowing);
+                    }
+
+                    const followingRes = await apiClient.get(
+                        `/profiles/following/${currentProfileId}`
+                    );
                     followingCount = followingRes.data?.length || 0;
+
+                    if (profileId && meData && !profileData.isPublic) {
+                        const { data: pendingRequest } = await apiClient.get(
+                            `/profiles/follow-requests/pending/${profileId}`
+                        );
+                        if (!ignore) setIsRequested(!!pendingRequest);
+                    }
+
                 } catch (e) {
                     console.warn("Could not fetch connection stats", e);
                 }
 
-                setStats((prev) => ({
-                    ...prev,
-                    followers: followersCount,
-                    following: followingCount,
-                }));
+                if (!ignore) {
+                    setStats((prev) => ({
+                        ...prev,
+                        followers: followersCount,
+                        following: followingCount,
+                    }));
+                }
             } catch (e) {
-                console.error(e);
+                if (ignore) return;
+                console.error("Profile fetch error:", e);
+                setProfile(null);
             } finally {
-                setIsLoadingProfile(false);
+                if (!ignore) {
+                    setIsLoadingProfile(false);
+                }
             }
         };
 
-        fetchProfileData();
+        fetchInitialData();
+
+        return () => {
+            ignore = true;
+        };
     }, [profileId]);
 
     useEffect(() => {
         let ignore = false;
 
         const loadInitialPosts = async () => {
+            if (!profile?.id) return;
+
             setIsPostsLoading(true);
             try {
-                const postsRoute = activeTab === "posts"
-                    ? (profileId ? `/posts/profile/${profileId}` : "/posts/my")
-                    : (profileId ? `/posts/${profileId}/mentions` : "/posts/my/mentions");
+                let postsRoute = "";
+                const isMyProfileRoute = !profileId;
+
+                // Use the validated profile.id instead of the raw URL parameter
+                if (activeTab === "posts") {
+                    postsRoute = isMyProfileRoute ? "/posts/my" : `/posts/profile/${profile.id}`;
+                } else {
+                    postsRoute = isMyProfileRoute ? `/posts/my/mentions` : `/posts/${profile.id}/mentions`;
+                }
 
                 const { data: postsResponse } = await apiClient.get(postsRoute, {
                     params: { take: 12, lastCursor: null },
@@ -115,12 +172,13 @@ export function UserProfile({ profileId }: UserProfileProps) {
                 if (!ignore) {
                     const { data, metaData } = postsResponse;
                     if (Array.isArray(data)) {
-                        setPosts(data); // Set fresh data, clearing out stale list
+                        setPosts(data);
+                        setNextCursor(metaData?.lastCursor || null);
+                        setHasNextPage(metaData?.hasNextPage || false);
+
                         if (activeTab === "posts") {
                             setStats(prevStats => ({ ...prevStats, posts: data.length }));
                         }
-                        setNextCursor(metaData.lastCursor);
-                        setHasNextPage(metaData.hasNextPage);
                     }
                 }
             } catch (e) {
@@ -133,16 +191,21 @@ export function UserProfile({ profileId }: UserProfileProps) {
         loadInitialPosts();
 
         return () => { ignore = true; };
-    }, [profileId, activeTab]);
+    }, [profile?.id, activeTab, profileId]);
 
-    const loadMorePosts = useCallback(async () => {
-        if (!hasNextPage || isPostsLoading || !nextCursor) return;
+    const loadMorePosts = async () => {
+        if (!hasNextPage || isPostsLoading || !nextCursor || !profile?.id) return;
 
         setIsPostsLoading(true);
         try {
-            const postsRoute = activeTab === "posts"
-                ? (profileId ? `/posts/profile/${profileId}` : "/posts/my")
-                : (profileId ? `/posts/${profileId}/mentions` : "/posts/my/mentions");
+            let postsRoute = "";
+            const isMyProfileRoute = !profileId;
+
+            if (activeTab === "posts") {
+                postsRoute = isMyProfileRoute ? "/posts/my" : `/posts/profile/${profile.id}`;
+            } else {
+                postsRoute = isMyProfileRoute ? `/posts/my/mentions` : `/posts/${profile.id}/mentions`;
+            }
 
             const { data: postsResponse } = await apiClient.get(postsRoute, {
                 params: { take: 12, lastCursor: nextCursor },
@@ -158,17 +221,62 @@ export function UserProfile({ profileId }: UserProfileProps) {
                     }
                     return combined;
                 });
-                setNextCursor(metaData.lastCursor);
-                setHasNextPage(metaData.hasNextPage);
+                setNextCursor(metaData?.lastCursor || null);
+                setHasNextPage(metaData?.hasNextPage || false);
             }
         } catch (e) {
             console.error("Error fetching more posts:", e);
         } finally {
             setIsPostsLoading(false);
         }
-    }, [activeTab, profileId, hasNextPage, isPostsLoading, nextCursor]);
+    };
 
-    const lastPostElementRef = useCallback((node: HTMLDivElement | null) => {
+    const handleFollow = async () => {
+        if (!profileId || isFollowActionLoading) return;
+        setIsFollowActionLoading(true);
+        try {
+            await apiClient.post(`/profiles/follow/${profileId}`);
+            if (profile?.isPublic) {
+                setIsFollowing(true);
+                setStats(prev => ({ ...prev, followers: prev.followers + 1 }));
+            } else {
+                setIsRequested(true);
+            }
+        } catch (error) {
+            console.error("Failed to follow user", error);
+        } finally {
+            setIsFollowActionLoading(false);
+        }
+    };
+
+    const handleUnfollow = async () => {
+        if (!profileId || isFollowActionLoading) return;
+        setIsFollowActionLoading(true);
+        try {
+            await apiClient.delete(`/profiles/unfollow/${profileId}`);
+            setIsFollowing(false);
+            setStats(prev => ({ ...prev, followers: prev.followers - 1 }));
+        } catch (error) {
+            console.error("Failed to unfollow user", error);
+        } finally {
+            setIsFollowActionLoading(false);
+        }
+    };
+
+    const handleCancelRequest = async () => {
+        if (!profileId || isFollowActionLoading) return;
+        setIsFollowActionLoading(true);
+        try {
+            await apiClient.delete(`/profiles/unfollow/${profileId}`);
+            setIsRequested(false);
+        } catch (error) {
+            console.error("Failed to cancel follow request", error);
+        } finally {
+            setIsFollowActionLoading(false);
+        }
+    };
+
+    const lastPostElementRef = (node: HTMLDivElement | null) => {
         if (isPostsLoading) return;
         if (observer.current) observer.current.disconnect();
 
@@ -177,8 +285,9 @@ export function UserProfile({ profileId }: UserProfileProps) {
                 loadMorePosts();
             }
         });
+
         if (node) observer.current.observe(node);
-    }, [isPostsLoading, hasNextPage, nextCursor, loadMorePosts]);
+    };
 
     if (isLoadingProfile) {
         return (
@@ -236,6 +345,38 @@ export function UserProfile({ profileId }: UserProfileProps) {
                             {profile.isPublic ? "Public Account" : "Private Account"}
                         </p>
                         <p className="whitespace-pre-wrap mt-1">{profile.bio}</p>
+                    </div>
+
+                    <div className="flex mt-4">
+                        {currentUser && profile && currentUser.id !== profile.id && (
+                            <>
+                                {isFollowing ? (
+                                    <button
+                                        onClick={handleUnfollow}
+                                        disabled={isFollowActionLoading}
+                                        className="px-4 py-1 bg-gray-200 text-gray-800 rounded font-semibold disabled:opacity-50"
+                                    >
+                                        Unfollow
+                                    </button>
+                                ) : isRequested ? (
+                                    <button
+                                        onClick={handleCancelRequest}
+                                        disabled={isFollowActionLoading}
+                                        className="px-4 py-1 bg-gray-200 text-gray-800 rounded font-semibold disabled:opacity-50"
+                                    >
+                                        Request Sent
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={handleFollow}
+                                        disabled={isFollowActionLoading}
+                                        className="px-4 py-1 bg-blue-500 text-white rounded font-semibold disabled:opacity-50"
+                                    >
+                                        Follow
+                                    </button>
+                                )}
+                            </>
+                        )}
                     </div>
                 </div>
             </header>

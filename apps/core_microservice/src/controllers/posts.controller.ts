@@ -51,6 +51,7 @@ export class PostsController {
       request.user.profileId,
       take,
       lastCursor,
+      request.user.profileId,
     );
   }
 
@@ -95,9 +96,15 @@ export class PostsController {
   async getPostsByProfile(
     @Param('profileId') profileId: string,
     @Query('take', new DefaultValuePipe(10), ParseIntPipe) take: number,
+    @Req() request: AuthenticatedRequest,
     @Query('lastCursor') lastCursor?: string,
   ) {
-    return await this.postsService.getProfilePosts(profileId, take, lastCursor);
+    return await this.postsService.getProfilePosts(
+      profileId,
+      take,
+      lastCursor,
+      request.user.profileId,
+    );
   }
 
   @ApiQuery({
@@ -153,8 +160,8 @@ export class PostsController {
   }
 
   @Get(':id')
-  async getById(@Param('id') id: string) {
-    return await this.postsService.getById(id);
+  async getById(@Param('id') id: string, @Req() request: AuthenticatedRequest) {
+    return await this.postsService.getById(id, request.user.profileId);
   }
 
   @Get(':id/likes')
@@ -178,6 +185,11 @@ export class PostsController {
   @Patch('archive/:id')
   async patch(@Param('id') id: string) {
     return await this.postsService.setPostAsArchived(id);
+  }
+
+  @Patch('unarchive/:id')
+  async unPatch(@Param('id') id: string) {
+    return await this.postsService.setPostAsUnarchived(id);
   }
 
   @Put(':id')

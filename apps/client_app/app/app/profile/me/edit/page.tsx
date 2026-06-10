@@ -137,7 +137,10 @@ export default function EditProfile() {
             await apiClient.put(`/profiles/${profile.id}`, formData);
             setSaveMessage("Profile saved successfully.");
 
-            setTimeout(() => setSaveMessage(""), 3000);
+            setTimeout(() => {
+                setSaveMessage("");
+                window.location.reload();
+            }, 500);
         } catch (e) {
             console.error(e);
             setSaveMessage("Failed to save profile.");
@@ -173,7 +176,10 @@ export default function EditProfile() {
             }
 
             setSaveMessage("Profile picture updated!");
-            setTimeout(() => setSaveMessage(""), 3000);
+            setTimeout(() => {
+                setSaveMessage("");
+                window.location.reload();
+            }, 1500);
         } catch (error) {
             console.error(error);
             setSaveMessage("Failed to upload picture.");
@@ -382,9 +388,7 @@ export default function EditProfile() {
                     </div>
                 </div>
 
-                <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 pt-4 border-b pb-8 border-gray-200">
-                    <div className="hidden sm:block sm:w-1/4"></div>
-                    <div className="w-full sm:w-3/4 flex items-center justify-between">
+                <div className="flex flex-col items-center gap-4 sm:gap-6 pt-4 border-b pb-8 mr-4 border-gray-200">
                         <button
                             type="submit"
                             disabled={isSaving}
@@ -392,7 +396,6 @@ export default function EditProfile() {
                         >
                             {isSaving ? "Saving..." : "Submit"}
                         </button>
-
                         {saveMessage && (
                             <span
                                 className={`text-sm font-medium ${
@@ -404,7 +407,6 @@ export default function EditProfile() {
                                 {saveMessage}
                             </span>
                         )}
-                    </div>
                 </div>
             </form>
 

@@ -33,7 +33,9 @@ apiClient.interceptors.response.use(
     const originalRequest = error.config as CustomAxiosRequestConfig | undefined;
     const data = error.response?.data as AxiosResponse["data"];
 
-    if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
+    const isLoginRequest = originalRequest?.url?.includes('/auth/login');
+
+    if (error.response?.status === 401 && originalRequest && !originalRequest._retry && !isLoginRequest) {
       if (isRefreshing) {
         return new Promise(function (resolve, reject) {
           failedQueue.push({ resolve, reject });

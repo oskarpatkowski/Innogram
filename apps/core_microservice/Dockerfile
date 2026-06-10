@@ -1,4 +1,4 @@
-FROM node:25-slim AS builder
+FROM node:22-slim AS builder
 
 WORKDIR /app
 
@@ -14,7 +14,7 @@ COPY . .
 
 RUN npx turbo build --filter=innogram-nest...
 
-FROM node:25-slim
+FROM node:22-slim
 
 WORKDIR /app
 

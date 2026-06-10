@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { providePrismaClientExceptionFilter } from 'nestjs-prisma';
@@ -18,7 +18,8 @@ import { HealthModule } from './health/health.module';
 import { PerformanceModule } from './modules/performance.module';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { PerformanceInterceptor } from './interceptors/performance.interceptor';
-import { RedisModule } from './modules/redis.module';
+import { CacheModule, CacheInterceptor } from '@nestjs/cache-manager';
+import KeyvRedis from '@keyv/redis';
 
 @Module({
   imports: [
@@ -29,7 +30,6 @@ import { RedisModule } from './modules/redis.module';
     PostsModule,
     UsersModule,
     AssetsModule,
-    RedisModule,
     ConfigModule.forRoot({
       isGlobal: true,
     }),
@@ -50,6 +50,25 @@ import { RedisModule } from './modules/redis.module';
     }),
     HealthModule,
     PerformanceModule,
+    CacheModule.registerAsync({
+      isGlobal: true,
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => {
+        const host = configService.get<string>('REDIS_HOST') || 'localhost';
+        const port = configService.get<number>('REDIS_PORT') || 6379;
+        const password = configService.get<string>('REDIS_PASSWORD') || '';
+
+        let redisUri = `redis://${host}:${port}`;
+        if (password) {
+          redisUri = `redis://:${password}@${host}:${port}`;
+        }
+
+        return {
+          stores: [new KeyvRedis(redisUri)],
+        };
+      },
+    }),
   ],
   controllers: [AppController],
   providers: [
@@ -59,6 +78,10 @@ import { RedisModule } from './modules/redis.module';
     {
       provide: APP_INTERCEPTOR,
       useClass: PerformanceInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: CacheInterceptor,
     },
   ],
   exports: [PrismaService],

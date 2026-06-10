@@ -9,6 +9,7 @@ const profileFindUnique = jest.fn();
 const profileFindMany = jest.fn();
 const profileUpdate = jest.fn();
 const profileDelete = jest.fn();
+const profileFindFirst = jest.fn();
 const profileFollowFindFirst = jest.fn();
 const profileFollowCreate = jest.fn();
 const profileFollowDelete = jest.fn();
@@ -25,6 +26,7 @@ const prismaMock = {
     findMany: profileFindMany,
     update: profileUpdate,
     delete: profileDelete,
+    findFirst: profileFindFirst,
   },
   profileFollow: {
     findFirst: profileFollowFindFirst,
@@ -169,7 +171,7 @@ describe('ProfileService', () => {
       const expectedFollow = { id: 'follow1' };
 
       profileFollowFindFirst.mockResolvedValue(null);
-      profileFindUnique
+      profileFindFirst
         .mockResolvedValueOnce(followedProfile)
         .mockResolvedValueOnce(followerUser);
       profileFollowCreate.mockResolvedValue(expectedFollow);

@@ -18,7 +18,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npm run dev --prefix apps/client_app',
+    command: 'npm run dev --prefix apps/client_app -- --no-package-lock',
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
   },

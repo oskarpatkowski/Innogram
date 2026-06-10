@@ -26,7 +26,8 @@ describe('AppController', () => {
   describe('root', () => {
     it('should return "Hello from Mock!"', () => {
       expect(appController.getHello()).toBe('Hello from Mock!');
-      expect(appService.getHello()).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(appService.getHello).toHaveBeenCalledTimes(1);
     });
   });
 });

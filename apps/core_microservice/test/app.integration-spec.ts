@@ -9,6 +9,15 @@ import { ProfileService } from '../src/services/profile.service';
 import { PostsService } from '../src/services/posts.service';
 import { CommentsService } from '../src/services/comments.service';
 
+interface LoginBody {
+  accessToken: string;
+  refreshToken: string;
+}
+
+interface LoginResponse {
+  body: LoginBody;
+}
+
 describe('AppController (integration)', () => {
   let app: INestApplication;
   let httpServer: App;
@@ -16,6 +25,7 @@ describe('AppController (integration)', () => {
   let profileService: ProfileService;
   let postsService: PostsService;
   let commentsService: CommentsService;
+  let accessToken: string;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -43,9 +53,13 @@ describe('AppController (integration)', () => {
       })
       .overrideProvider(AuthService)
       .useValue({
-        login: jest.fn(),
+        login: jest.fn().mockResolvedValue({ accessToken: 'test-token' }),
         register: jest.fn(),
-        verify: jest.fn(),
+        verify: jest.fn().mockResolvedValue({ id: 'user1' }),
+        validateToken: jest.fn().mockResolvedValue({
+          isValid: true,
+          tokenPayload: { userId: 'user1', profileId: 'profile1' },
+        }),
       })
       .overrideProvider(ProfileService)
       .useValue({
@@ -72,6 +86,12 @@ describe('AppController (integration)', () => {
     profileService = moduleFixture.get<ProfileService>(ProfileService);
     postsService = moduleFixture.get<PostsService>(PostsService);
     commentsService = moduleFixture.get<CommentsService>(CommentsService);
+
+    const response: LoginResponse = await request(httpServer)
+      .post('/auth/login')
+      .send({ username: 'test', password: 'password' });
+
+    ({ accessToken } = response.body);
   });
 
   afterAll(async () => {
@@ -87,12 +107,10 @@ describe('AppController (integration)', () => {
       const loginDto = { username: 'test', password: 'password' };
       const expectedResponse = { accessToken: 'test-token' };
 
-      (authService.login as jest.Mock).mockResolvedValue(expectedResponse);
-
       return request(httpServer)
         .post('/auth/login')
         .send(loginDto)
-        .expect(201)
+        .expect(200)
         .expect(expectedResponse);
     });
 
@@ -123,6 +141,7 @@ describe('AppController (integration)', () => {
 
       return request(httpServer)
         .get(`/profiles/${profileId}`)
+        .set('Authorization', `Bearer ${accessToken}`)
         .expect(200)
         .expect(expectedProfile);
     });
@@ -136,6 +155,7 @@ describe('AppController (integration)', () => {
 
       return request(httpServer)
         .put(`/profiles/${profileId}`)
+        .set('Authorization', `Bearer ${accessToken}`)
         .send(updateProfileDto)
         .expect(200)
         .expect(expectedProfile);
@@ -151,6 +171,7 @@ describe('AppController (integration)', () => {
 
       return request(httpServer)
         .get(`/posts/${postId}`)
+        .set('Authorization', `Bearer ${accessToken}`)
         .expect(200)
         .expect(expectedPost);
     });
@@ -163,6 +184,7 @@ describe('AppController (integration)', () => {
 
       return request(httpServer)
         .post('/posts')
+        .set('Authorization', `Bearer ${accessToken}`)
         .send(createPostDto)
         .expect(201)
         .expect(expectedPost);
@@ -178,6 +200,7 @@ describe('AppController (integration)', () => {
 
       return request(httpServer)
         .get(`/comments/${commentId}`)
+        .set('Authorization', `Bearer ${accessToken}`)
         .expect(200)
         .expect(expectedComment);
     });
@@ -190,6 +213,7 @@ describe('AppController (integration)', () => {
 
       return request(httpServer)
         .post('/comments')
+        .set('Authorization', `Bearer ${accessToken}`)
         .send(createCommentDto)
         .expect(201)
         .expect(expectedComment);

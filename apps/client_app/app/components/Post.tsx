@@ -3,7 +3,8 @@
 import React, { useEffect, useState } from "react";
 import { PostData, PostAsset, Asset, ProfileData } from "@/app/components/ProfileComponent";
 import { apiClient } from "@/apiClient";
-import {comment} from "postcss";
+import Image from "next/image";
+import { ImagePreloader } from "./ImagePreloader";
 
 interface Like {
     id: string;
@@ -244,6 +245,11 @@ export default function Post(postData: PostData) {
     const [isFading, setIsFading] = useState(false);
     const [nextImageIndex, setNextImageIndex] = useState<number | null>(null);
 
+    // Extract image URLs for preloading, filtering out video URLs if possible
+    const imageUrlsToPreload = postAssets
+        ?.filter(pa => !pa.asset.fileType.startsWith('video/'))
+        .map(pa => pa.asset.filePath) || [];
+
     const fetchComments = async () => {
         try {
             const commentsResponse = await apiClient.get(`comments/post/${id}`);
@@ -439,6 +445,7 @@ export default function Post(postData: PostData) {
 
     return (
         <div className="max-w-[470px] w-full mx-auto bg-white border-b border-gray-200 pb-2 mb-6 font-sans text-sm text-black relative">
+            <ImagePreloader imageUrls={imageUrlsToPreload} />
 
             <div className="flex items-center justify-between p-3">
                 <div className="flex items-center gap-2">
@@ -446,7 +453,7 @@ export default function Post(postData: PostData) {
                         <div className="w-full h-full bg-white rounded-full border border-white overflow-hidden">
                             {
                                 userData?.avatarUrl ? (
-                                    <img
+                                    <Image
                                         src={userData?.avatarUrl}
                                         alt={`${userData?.username || 'User'}'s profile`}
                                         className="w-full h-full object-cover"
@@ -491,7 +498,7 @@ export default function Post(postData: PostData) {
                                     loop
                                 />
                             ) : (
-                                <img
+                                <Image
                                     src={nextAsset.filePath}
                                     alt="Next Post content"
                                     className="w-full h-full object-cover"
@@ -511,7 +518,7 @@ export default function Post(postData: PostData) {
                                 loop
                             />
                         ) : (
-                            <img
+                            <Image
                                 src={currentAsset.filePath}
                                 alt="Post content"
                                 className="w-full h-full object-cover"

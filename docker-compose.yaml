@@ -39,6 +39,8 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_NAME}:${POSTGRES_PASSWD}@db:5432/${POSTGRES_NAME}
       AUTH_SERVICE_URL: "http://auth:${AUTH_PORT}"
       FRONTEND_URL: "http://localhost:${CLIENT_PORT}"
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
     depends_on:
       db:
         condition: service_healthy

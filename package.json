@@ -81,6 +81,7 @@
     "ignore": "^5.3.2",
     "import-fresh": "^3.3.1",
     "imurmurhash": "^0.1.4",
+    "ioredis": "^5.11.1",
     "is-extglob": "^2.1.1",
     "is-glob": "^4.0.3",
     "isexe": "^2.0.0",

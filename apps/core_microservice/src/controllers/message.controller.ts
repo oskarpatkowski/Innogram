@@ -17,7 +17,7 @@ import { MessageService } from '../services/message.service';
 
 @Controller('messages')
 @UseGuards(AccessGuard)
-export class MessageControler {
+export class MessageController {
   constructor(private readonly messageService: MessageService) {}
 
   @Post()
@@ -40,6 +40,11 @@ export class MessageControler {
   @Get()
   async getAll() {
     return await this.messageService.getAll();
+  }
+
+  @Get('/chat/:id')
+  async getForChat(@Param('id') id: string) {
+    return await this.messageService.getForChat(id);
   }
 
   @Put(':id')

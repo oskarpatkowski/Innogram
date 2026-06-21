@@ -30,7 +30,7 @@ export class PerformanceInterceptor implements NestInterceptor {
       tap(() => {
         const duration = Date.now() - now;
 
-        this.performanceService.recordRequest(method, url, duration);
+        void this.performanceService.recordRequest(method, url, duration);
 
         if (duration > this.SLOW_REQUEST_THRESHOLD_MS) {
           this.logger.warn(`Slow Request: ${method} ${url} took ${duration}ms`);

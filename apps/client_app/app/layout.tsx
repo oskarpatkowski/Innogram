@@ -3,6 +3,12 @@ import Layout from "./components/layout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import "./globals.css";
 import { AppProvider, User } from "./state/AppContext";
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Innogram',
+  description: 'Innogram - a social media platform',
+}
 
 //JSON.parse returns any
 /* eslint-disable @typescript-eslint/no-explicit-any */

@@ -1,5 +1,8 @@
+// @ts-ignore
 import js from "@eslint/js";
+// @ts-ignore
 import pluginReact from "eslint-plugin-react";
+// @ts-ignore
 import globals from "globals";
 import tseslint from "typescript-eslint";
 
@@ -21,7 +24,8 @@ export default tseslint.config(
     languageOptions: {
       parserOptions: {
         projectService: true,
-        tsconfigRootDir: import.meta.dirname,
+          // @ts-ignore
+          tsconfigRootDir: import.meta.dirname,
       },
     },
   },

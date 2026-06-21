@@ -5,7 +5,8 @@ import {
   Get,
   Param,
   Post,
-  Put, Req,
+  Put,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { CreateNotificationDto } from '../../dto/create.notification.dto';

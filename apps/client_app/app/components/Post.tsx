@@ -450,13 +450,14 @@ export default function Post(postData: PostData) {
             <div className="flex items-center justify-between p-3">
                 <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-full p-[2px]">
-                        <div className="w-full h-full bg-white rounded-full border border-white overflow-hidden">
+                        <div className="w-full h-full bg-white rounded-full border border-white overflow-hidden relative">
                             {
                                 userData?.avatarUrl ? (
                                     <Image
                                         src={userData?.avatarUrl}
                                         alt={`${userData?.username || 'User'}'s profile`}
                                         className="w-full h-full object-cover"
+                                        fill
                                     />
                                 ) : (
                                     <div className="w-24 h-24 sm:w-36 sm:h-36 rounded-full bg-gray-100 border border-gray-200 p-1 flex items-center justify-center">
@@ -502,6 +503,8 @@ export default function Post(postData: PostData) {
                                     src={nextAsset.filePath}
                                     alt="Next Post content"
                                     className="w-full h-full object-cover"
+                                    fill
+                                    priority
                                 />
                             )}
                         </div>
@@ -522,6 +525,8 @@ export default function Post(postData: PostData) {
                                 src={currentAsset.filePath}
                                 alt="Post content"
                                 className="w-full h-full object-cover"
+                                fill
+                                priority
                             />
                         )}
                     </div>

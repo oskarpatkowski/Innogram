@@ -25,7 +25,7 @@
     "test:integration": "npm run test:integration --workspace=apps/core_microservice",
     "test:cov:unit": "npm run test:cov --workspace=apps/core_microservice",
     "test:cov:integration": "npm run test:integration --workspace=apps/core_microservice -- --coverage",
-    "test:cov:e2e": "playwright test --project=chromium --reporter=json",
+    "test:cov:e2e": "playwright test --project=chromium",
     "merge-coverage": "node scripts/merge-coverage.js",
     "test:perf:smoke": "k6 run performance/smoke-test.js",
     "test:perf:stress": "k6 run performance/stress-test.js"
@@ -59,6 +59,7 @@
     "debug": "^4.4.3",
     "deep-is": "^0.1.4",
     "escape-string-regexp": "^4.0.0",
+    "eslint-plugin-react": "^7.37.5",
     "eslint-scope": "^8.4.0",
     "eslint-visitor-keys": "^4.2.1",
     "espree": "^10.4.0",
@@ -115,7 +116,7 @@
     "supports-color": "^7.2.0",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
-    "tsx": "^4.22.2",
+    "tsx": "^4.16.2",
     "type-check": "^0.4.0",
     "uri-js": "^4.4.1",
     "uuid": "^13.0.0",
@@ -125,7 +126,7 @@
     "yocto-queue": "^0.1.0"
   },
   "devDependencies": {
-    "@playwright/test": "^1.42.1",
+    "@playwright/test": "^1.45.0",
     "@types/bcrypt": "^6.0.0",
     "@types/cookie-parser": "^1.4.10",
     "@types/express": "^5.0.6",
@@ -140,6 +141,8 @@
     "dotenv": "^17.4.2",
     "eslint": "^9.39.4",
     "prisma": "^7.7.0",
-    "turbo": "^2.9.1"
+    "tsx": "^4.16.2",
+    "turbo": "^2.9.1",
+    "v8-to-istanbul": "^9.3.0"
   }
 }

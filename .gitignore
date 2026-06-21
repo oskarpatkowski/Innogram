@@ -10,3 +10,15 @@ apps/core_microservice/uploads/
 *.js
 *.js.map
 *.d.ts
+# Testing and Coverage
+apps/coverage/
+coverage/
+test-results/
+test-results-new/
+playwright-report/
+blob-report/
+playwright/.last-run.json
+.nyc_output/
+.turbo/cache
+.turbo
+.turbo*

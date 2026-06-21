@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import {Prisma, PrismaClient} from '@prisma/client';
 import { faker } from '@faker-js/faker';
 import { hash, genSalt } from 'bcrypt';
 import {PrismaPg} from "@prisma/adapter-pg";
@@ -26,25 +26,39 @@ function getVideoUrl() {
 
 async function main() {
   // Clean up existing data in reverse order of dependencies
-  await prisma.postMention.deleteMany();
-  await prisma.commentMention.deleteMany();
-  await prisma.postLike.deleteMany();
-  await prisma.commentLike.deleteMany();
-  await prisma.postAsset.deleteMany();
-  await prisma.messageAsset.deleteMany();
-  await prisma.profileFollow.deleteMany();
-  await prisma.chatParticipant.deleteMany();
-  await prisma.message.deleteMany();
-  await prisma.chat.deleteMany();
-  await prisma.comment.deleteMany();
-  await prisma.post.deleteMany();
-  await prisma.profileToProfileConfiguration.deleteMany();
-  await prisma.profileConfiguration.deleteMany();
-  await prisma.notification.deleteMany();
-  await prisma.assets.deleteMany();
-  await prisma.profile.deleteMany();
-  await prisma.account.deleteMany();
-  await prisma.user.deleteMany();
+  const modelDelegates = [
+    prisma.postMention,
+    prisma.commentMention,
+    prisma.postLike,
+    prisma.commentLike,
+    prisma.postAsset,
+    prisma.messageAsset,
+    prisma.profileFollow,
+    prisma.chatParticipant,
+    prisma.message,
+    prisma.chat,
+    prisma.comment,
+    prisma.post,
+    prisma.profileToProfileConfiguration,
+    prisma.profileConfiguration,
+    prisma.notification,
+    prisma.assets,
+    prisma.profile,
+    prisma.account,
+    prisma.user,
+  ];
+
+  for (const delegate of modelDelegates) {
+    try {
+      await (delegate as any).deleteMany();
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2021') {
+        // This is okay, table doesn't exist.
+      } else {
+        throw e;
+      }
+    }
+  }
 
   const salt = await genSalt(10);
   const password = await hash('password', salt);

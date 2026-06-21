@@ -8,6 +8,7 @@ import { AuthService } from '../src/services/auth.service';
 import { ProfileService } from '../src/services/profile.service';
 import { PostsService } from '../src/services/posts.service';
 import { CommentsService } from '../src/services/comments.service';
+import { RedisService } from '../src/services/redis.service';
 
 interface LoginBody {
   accessToken: string;
@@ -33,6 +34,7 @@ describe('AppController (integration)', () => {
     })
       .overrideProvider(PrismaService)
       .useValue({
+        onModuleDestroy: () => {},
         user: {
           create: jest.fn(),
           findUnique: jest.fn(),
@@ -75,6 +77,26 @@ describe('AppController (integration)', () => {
       .useValue({
         getById: jest.fn(),
         create: jest.fn(),
+      })
+      .overrideProvider(RedisService)
+      .useValue({
+        getClient: jest.fn().mockReturnValue({
+          get: jest.fn(),
+          set: jest.fn(),
+          hset: jest.fn(),
+          hgetall: jest.fn().mockResolvedValue({}),
+          incr: jest.fn(),
+          hincrby: jest.fn(),
+          multi: jest.fn().mockReturnValue({
+            incr: jest.fn().mockReturnThis(),
+            hincrby: jest.fn().mockReturnThis(),
+            exec: jest.fn().mockResolvedValue([]),
+          }),
+          keys: jest.fn().mockResolvedValue([]),
+          on: jest.fn(),
+          quit: jest.fn(),
+        }),
+        onModuleDestroy: jest.fn(),
       })
       .compile();
 

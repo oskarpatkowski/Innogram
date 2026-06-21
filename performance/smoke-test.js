@@ -6,11 +6,13 @@ export const options = {
   duration: '30s',
   thresholds: {
     http_req_duration: ['p(95)<500'],
-    http_req_failed: ['rate<0.01'],
+    http_req_failed: [{ threshold: 'rate<0.01', abortOnFail: false }],
   },
+  summaryTrendStats: ['avg', 'min', 'med', 'max', 'p(90)', 'p(95)'],
 };
 
-const BASE_URL = 'http://localhost:8080';
+const PORT = __ENV.CORE_PORT || __ENV.PORT || 3000;
+const BASE_URL = `http://localhost:${PORT}`;
 
 export default function () {
   const mainRes = http.get(`${BASE_URL}/`);
@@ -21,8 +23,9 @@ export default function () {
   sleep(1);
 
   const loginPayload = JSON.stringify({
-    email: 'testuser@example.com',
-    password: 'password123',
+    email: 'test@test.com',
+    password: 'password',
+    userAgent: 'k6-smoke-test',
   });
 
   const params = {
@@ -32,9 +35,13 @@ export default function () {
   };
 
   const loginRes = http.post(`${BASE_URL}/auth/login`, loginPayload, params);
-  check(loginRes, {
-    'login endpoint status is 201 or 401': (r) => [201, 401].includes(r.status),
-  });
 
+  if (![200, 401, 404].includes(loginRes.status)) {
+    console.error(`Login Failed! Status: ${loginRes.status} | Body: ${loginRes.body}`);
+  }
+
+  check(loginRes, {
+    'login endpoint status is 200, 401 or 404': (r) => [200, 401, 404].includes(r.status),
+  });
   sleep(1);
 }

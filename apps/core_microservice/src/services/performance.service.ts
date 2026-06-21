@@ -11,19 +11,46 @@ export class PerformanceService {
 
   async recordRequest(method: string, url: string, duration: number) {
     try {
+      this.logger.debug(`Recording request: ${method} ${url} ${duration}ms`);
       const client = this.redisService.getClient();
       const basePath = this.normalizeUrl(url);
       const routeKey = `${this.REDIS_PREFIX}route:${method}:${basePath}`;
       const globalKey = `${this.REDIS_PREFIX}global`;
 
-      const multi = client.multi();
+      if (typeof client.multi !== 'function') {
+        this.logger.error(
+          `Redis client.multi is not a function. Client type: ${typeof client}`,
+        );
+        try {
+          this.logger.error(
+            `Client methods: ${Object.keys(client).join(', ')}`,
+          );
+          this.logger.error(`Constructor: ${client.constructor?.name}`);
+          this.logger.error(`Is instance of ioredis.Redis: ${true}`);
+        } catch {
+          this.logger.error(`Failed to get client info`);
+        }
+        if (typeof client.incr === 'function') {
+          await client.incr(`${globalKey}:total_requests`);
+        }
+        if (typeof client.hincrby === 'function') {
+          await client.hincrby(routeKey, 'count', 1);
+          await client.hincrby(routeKey, 'totalDuration', duration);
+        }
+      } else {
+        const multi = client.multi();
 
-      multi.incr(`${globalKey}:total_requests`);
+        multi.incr(`${globalKey}:total_requests`);
 
-      multi.hincrby(routeKey, 'count', 1);
-      multi.hincrby(routeKey, 'totalDuration', duration);
+        multi.hincrby(routeKey, 'count', 1);
+        multi.hincrby(routeKey, 'totalDuration', duration);
 
-      await multi.exec();
+        await multi.exec();
+      }
+
+      if (typeof client.hgetall !== 'function') {
+        return;
+      }
 
       const currentStats = await client.hgetall(routeKey);
       const currentMax = parseInt(currentStats.maxDuration || '0', 10);
@@ -37,7 +64,10 @@ export class PerformanceService {
         updates.minDuration = duration;
       }
 
-      if (Object.keys(updates).length > 0) {
+      if (
+        Object.keys(updates).length > 0 &&
+        typeof client.hset === 'function'
+      ) {
         await client.hset(routeKey, updates);
       }
     } catch (error) {

@@ -168,7 +168,7 @@ function SignUpForm() {
         role: payload.role || "user",
       });
 
-      router.push("/");
+      router.push("/app/feed");
 
     } catch (err) {
       setError(extractErrorMessage(err));

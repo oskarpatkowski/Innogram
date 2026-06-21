@@ -10,39 +10,22 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    env:
-      DATABASE_URL: "postgresql://postgres:password@localhost:5439/innogram_test?schema=public"
-
-    services:
-      postgres:
-        image: postgres
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: password
-          POSTGRES_DB: innogram_test
-        ports:
-          - 5439:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     strategy:
       matrix:
-        node-version: [24.x]
+        node-version: [22.x]
+
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node-version }}
           cache: "npm"
 
       - run: npm ci
-      
-      - name: Install Playwright Browsers
-        run: npx playwright install --with-deps
+
+      - name: Generate Prisma Client
+        run: npx turbo run generate
 
       - name: Install k6
         run: |
@@ -51,29 +34,74 @@ jobs:
           echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
           sudo apt-get update
           sudo apt-get install k6
+      
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
 
-      - name: Run Migrations
-        run: npx turbo run migrate:deploy
-
-      - run: npx turbo build
-
-      - name: Run Tests
+      - name: Run Unit Tests
+        run: npm run test:cov:unit
+          
+      - name: Create .env file for Docker Compose
         run: |
-          npm run test:cov:unit
+          echo "CORE_PORT=3000" >> .env
+          echo "CLIENT_PORT=3001" >> .env
+          echo "AUTH_PORT=3002" >> .env
+          echo "DB_PORT=5439" >> .env
+          echo "REDIS_PORT=6379" >> .env
+          echo "POSTGRES_NAME=innogram_test" >> .env
+          echo "POSTGRES_PASSWD=password" >> .env
+          echo "JWT_SECRET=secret" >> .env
+          echo "JWT_REFRESH_SECRET=refresh_secret" >> .env
+
+      - name: Build and Run Application with Docker Compose
+        run: docker compose up -d
+
+      - name: Wait for Application
+        run: |
+          echo "Waiting for Auth Microservice..."
+          for i in {1..30}; do
+            if curl -sf http://localhost:3002/health | grep -q '"status":"ok"'; then
+              echo "Auth Microservice is responding!"
+              break
+            fi
+            echo "Waiting for Auth Microservice... ($i)"
+            sleep 2
+          done
+
+          echo "Waiting for Core Application..."
+          for i in {1..30}; do
+            if curl -sf http://localhost:3000/health | grep -q '"status":"ok"'; then
+              echo "Application is ready!"
+              exit 0
+            fi
+            echo "Waiting for application to be ready... ($i)"
+            sleep 2
+          done
+          echo "Application failed to start. Tailing logs:"
+          docker compose logs --tail=100
+          exit 1
+
+      - name: Run Integration, E2E, and Performance Tests
+        run: |
           npm run test:cov:integration
           npm run test:cov:e2e
-
+          npm run test:perf:smoke
+        env:
+          DATABASE_URL: postgresql://postgres:password@localhost:5439/innogram_test
+          CORE_PORT: 3000
+          
+      - name: Stop Docker Compose
+        if: always()
+        run: docker compose down
+      
       - name: Merge Coverage
         run: npm run merge-coverage
         
       - name: Upload Coverage Report
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-report
           path: coverage/merged
-
-      - name: Run Performance Tests
-        run: npm run test:perf
 
       - run: npx turbo lint
       - run: npx turbo check-types

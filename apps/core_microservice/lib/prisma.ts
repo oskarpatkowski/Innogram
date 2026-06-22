@@ -20,6 +20,21 @@ if (!connectionString) {
 
 const pool = new Pool({ connectionString });
 const adapter = new PrismaPg(pool);
-const prisma = new PrismaClient({ adapter });
+const prisma = new PrismaClient({ 
+  adapter,
+  log: [
+    { emit: 'event', level: 'query' },
+    { emit: 'stdout', level: 'error' },
+    { emit: 'stdout', level: 'info' },
+    { emit: 'stdout', level: 'warn' },
+  ]
+});
+
+// Log queries that take longer than 50ms (adjustable)
+prisma.$on('query', (e) => {
+  if (e.duration > 50) {
+    console.warn(`[Slow Query - ${e.duration}ms] ${e.query}`);
+  }
+});
 
 export { prisma };

@@ -221,16 +221,20 @@ describe('PostsService', () => {
   describe('getById', () => {
     it('should return a post by id', async () => {
       const postId = 'post1';
-      const post = { id: postId, profile: { isPublic: true } };
+      const viewerProfileId = 'viewerProfile1';
+      const post = {
+        id: postId,
+        profile: { isPublic: true, followers: [] },
+      };
 
       postFindFirst.mockResolvedValue(post);
 
-      const result = await service.getById(postId);
+      const result = await service.getById(postId, viewerProfileId);
 
       expect(postFindFirst).toHaveBeenCalledWith({
         where: {
           id: postId,
-          OR: [{ isArchived: false }, { profileId: undefined }],
+          OR: [{ isArchived: false }, { profileId: viewerProfileId }],
         },
         include: {
           postAssets: {
@@ -238,7 +242,16 @@ describe('PostsService', () => {
               asset: true,
             },
           },
-          profile: true,
+          profile: {
+            include: {
+              followers: {
+                where: {
+                  followerProfileId: viewerProfileId,
+                  accepted: true,
+                },
+              },
+            },
+          },
         },
       });
       expect(result).toEqual(post);

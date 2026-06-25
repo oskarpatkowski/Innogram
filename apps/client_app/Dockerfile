@@ -1,12 +1,12 @@
-FROM node:25-slim AS base
+FROM node:22-slim AS base
 WORKDIR /app
 
 COPY package.json package-lock.json* ./
 COPY apps/client_app/package.json ./apps/client_app/
 
-RUN npm ci
-
 COPY . .
+
+RUN npm ci
 
 FROM base AS builder
 
@@ -14,7 +14,7 @@ WORKDIR /app
 
 RUN npx turbo build --filter=innogram-next...
 
-FROM node:25-slim AS runner
+FROM base AS runner
 WORKDIR /app
 
 COPY package.json package-lock.json* ./

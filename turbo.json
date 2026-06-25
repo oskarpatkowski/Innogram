@@ -2,8 +2,12 @@
   "$schema": "https://turborepo.dev/schema.json",
   "globalEnv": ["DATABASE_URL", "NODE_ENV"],
   "tasks": {
+    "build": {
+      "dependsOn": ["^build", "^generate"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+    },
     "generate": {
-      "cache": true,
+      "cache": false,
       "inputs": ["prisma/schema.prisma"],
       "outputs": [
         "../../node_modules/.prisma/client/**",
@@ -22,10 +26,6 @@
     "seed": {
       "cache": false,
       "dependsOn": ["^generate"]
-    },
-    "build": {
-      "dependsOn": ["^build", "^generate"],
-      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
     },
     "test": {
       "dependsOn": ["build"],

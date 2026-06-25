@@ -215,6 +215,8 @@ model Post {
   postLikes PostLike[] 
   postMentions PostMention[]
 
+  @@index([profileId, createdAt])
+  @@index([isArchived])
   @@map("posts")
   @@schema("main")
 }
@@ -247,6 +249,8 @@ model Comment {
   commentLikes CommentLike[]
   commentMentions CommentMention[]
 
+  @@index([postId])
+  @@index([profileId])
   @@map("comments")
   @@schema("main")
 }
@@ -349,6 +353,7 @@ model Notification {
   updatedBy User? @relation("NotificationUpdater", fields: [updatedById], references: [id])
   updatedById String? @map("updated_by") @db.VarChar(36)
 
+  @@index([recipientId])
   @@map("notifications")
   @@schema("notification")
 }
@@ -416,6 +421,7 @@ model ProfileFollow {
   updatedBy User @relation("ProfileFollowUpdater", fields: [updatedById] ,references: [id])
   updatedById String @map("updated_by") @db.VarChar(36)
 
+  @@index([followingProfileId])
   @@map("profiles_follows")
   @@schema("main")
   @@unique([followerProfileId, followingProfileId])

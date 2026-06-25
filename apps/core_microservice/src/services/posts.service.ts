@@ -213,7 +213,16 @@ export class PostsService {
             asset: true,
           },
         },
-        profile: true,
+        profile: {
+          include: {
+            followers: {
+              where: {
+                followerProfileId: viewerProfileId,
+                accepted: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -221,27 +230,17 @@ export class PostsService {
       Logger.log(`Post ${id} not found`, 'PostsService');
       return null;
     }
+
     const isOwner = post.profileId === viewerProfileId;
+    const canView =
+      post.profile.isPublic || isOwner || post.profile.followers.length > 0;
 
-    if (post.profile.isPublic || isOwner) {
+    if (canView) {
       Logger.log(`Post ${post.id} found`, 'PostsService');
       return post;
     }
 
-    const isFollowing = await this.prisma.profileFollow.findFirst({
-      where: {
-        followerProfileId: viewerProfileId,
-        followingProfileId: post.profileId,
-        accepted: true,
-      },
-    });
-
-    if (isFollowing) {
-      Logger.log(`Post ${post.id} found`, 'PostsService');
-      return post;
-    }
-
-    Logger.log(`Post ${id} not found`, 'PostsService');
+    Logger.log(`Post ${id} not found or access denied`, 'PostsService');
     return null;
   }
 

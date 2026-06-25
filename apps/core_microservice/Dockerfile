@@ -1,4 +1,4 @@
-FROM node:25-slim AS builder
+FROM node:22-slim AS builder
 
 WORKDIR /app
 
@@ -6,7 +6,9 @@ RUN apt-get update -y && apt-get install -y openssl
 
 COPY package.json package-lock.json ./
 COPY apps/core_microservice/package.json ./apps/core_microservice/
+COPY apps/auth_microservice/package.json ./apps/auth_microservice/
 COPY apps/client_app/package.json ./apps/client_app/
+COPY packages/database/package.json ./packages/database/
 
 RUN npm ci
 
@@ -14,7 +16,7 @@ COPY . .
 
 RUN npx turbo build --filter=innogram-nest...
 
-FROM node:25-slim
+FROM node:22-slim
 
 WORKDIR /app
 

@@ -13,6 +13,7 @@ import helmet from 'helmet';
 import { PrismaClientExceptionFilter } from 'nestjs-prisma';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './filters/exception.filter';
+import { logger } from './logger.config';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
@@ -21,6 +22,8 @@ async function bootstrap() {
       timestamp: true,
     }),
   });
+
+  app.use(logger);
 
   app.use(
     helmet({

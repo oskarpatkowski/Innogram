@@ -24,8 +24,11 @@ RUN apt-get update -y && apt-get install -y openssl
 
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/packages ./packages
+
 COPY --from=builder /app/apps/core_microservice/dist ./apps/core_microservice/dist
 COPY --from=builder /app/apps/core_microservice/package.json ./apps/core_microservice/
+
+COPY --from=builder /app/apps/core_microservice/node_modules ./apps/core_microservice/node_modules
 
 WORKDIR /app/apps/core_microservice
 

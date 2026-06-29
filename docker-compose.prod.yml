@@ -1,0 +1,40 @@
+services:
+  prisma-setup:
+    build:
+      target: builder
+    command: npx prisma db push
+
+  prisma-seed:
+    build:
+      target: builder
+    command: /bin/sh -c "npm run build && npx prisma db seed"
+
+  core:
+    build:
+      target: runner
+    command: node dist/src/main.js
+    volumes: []
+    environment:
+      NODE_ENV: production
+      FRONTEND_URL: "http://${EC2_IP}:${CLIENT_PORT}"
+      AUTH_SERVICE_URL: "http://auth:${AUTH_PORT}"
+
+  client:
+    build:
+      target: runner
+    command: npm run start
+    volumes: []
+    environment:
+      NODE_ENV: production
+      CORE_URL: "http://core:${CORE_PORT}"
+      NEXT_PUBLIC_API_URL: "http://${EC2_IP}:${CORE_PORT}"
+      NEXT_PUBLIC_AUTH_URL: "http://${EC2_IP}:${AUTH_PORT}"
+
+  auth:
+    build:
+      target: runner
+    command: node dist/main.js
+    volumes: []
+    environment:
+      NODE_ENV: production
+      ALLOWED_ORIGIN: "http://${EC2_IP}:${CLIENT_PORT}"

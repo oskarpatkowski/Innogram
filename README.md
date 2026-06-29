@@ -2,19 +2,26 @@
 
 Make sure you have docker installed and download a postgres docker [image](https://hub.docker.com/_/postgres)
 
-## Deployment
+## Development (Default)
 
-To deploy this application, you will need to have Docker and Docker Compose installed.
+To start the application in development mode with hot-reloading (uses volume bind mounts):
 
-1.  Create a `.env` file in the root of the project. You can use the `.env.example` file as a template.
+```bash
+docker compose up --build
+```
 
-2.  Run the following command to start the database and all microservices:
+The client will be available at `http://localhost:3001` (or your configured `CLIENT_PORT`).
 
-    ```
-    docker-compose up --build
-    ```
+## Production Deployment
 
-The application will be running on port 3000.
+To deploy in production mode (removes bind mounts, uses pre-built stages):
+
+1. Set your `EC2_IP` and other required variables in `.env`.
+2. Run the deployment command:
+
+```bash
+docker compose -f docker-compose.yaml -f docker-compose.prod.yml up -d --build
+```
 
 ## Microservices
 

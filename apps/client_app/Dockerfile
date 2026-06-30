@@ -25,7 +25,6 @@ RUN adduser --system --uid 1001 nodejs
 USER nodejs
 
 COPY --from=installer --chown=nodejs:nodejs /app/node_modules ./node_modules
-COPY --from=installer --chown=nodejs:nodejs /app/packages ./packages
 COPY --from=installer --chown=nodejs:nodejs /app/apps/client_app ./apps/client_app
 
 WORKDIR /app/apps/client_app

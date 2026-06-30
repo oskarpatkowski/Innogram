@@ -1,15 +1,12 @@
 services:
-  prisma-setup:
-    command: npx prisma db push
-
-  prisma-seed:
-    command: npx prisma db seed
-
   core:
     command: node dist/src/main.js
-
-  client:
-    command: npm start
+    volumes: []
 
   auth:
     command: node dist/main.js
+    volumes: []
+
+  client:
+    command: npm start
+    volumes: []

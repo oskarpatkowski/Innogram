@@ -1,25 +1,36 @@
 FROM node:22-slim AS builder
+RUN npm install -g turbo
+WORKDIR /app
+COPY . .
+RUN turbo prune innogram-next --docker
+
+FROM node:22-slim AS installer
 WORKDIR /app
 
-COPY package.json package-lock.json* ./
-COPY apps/client_app/package.json ./apps/client_app/
+COPY --from=builder /app/out/json/ .
+COPY --from=builder /app/out/package-lock.json ./package-lock.json
 
-RUN npm ci --cache ./.npm-cache
+RUN npm ci
 
-COPY . .
+COPY --from=builder /app/out/full/ .
+COPY turbo.json turbo.json
 
 RUN npx turbo build --filter=innogram-next...
 
 FROM node:22-slim AS runner
+WORKDIR /app
+
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nodejs
+USER nodejs
+
 WORKDIR /app/apps/client_app
 
-COPY --from=builder /app/package-lock.json ./package-lock.json
-COPY --from=builder /app/apps/client_app/package.json ./package.json
-COPY --from=builder /app/apps/client_app/.next ./.next
-COPY --from=builder /app/apps/client_app/public ./public
-
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/apps/client_app/node_modules ./node_modules
+COPY --from=installer --chown=nodejs:nodejs /app/apps/client_app/package.json ./package.json
+COPY --from=installer --chown=nodejs:nodejs /app/apps/client_app/.next ./.next
+COPY --from=installer --chown=nodejs:nodejs /app/apps/client_app/public ./public
+COPY --from=installer --chown=nodejs:nodejs /app/node_modules ./node_modules
+COPY --from=installer --chown=nodejs:nodejs /app/apps/client_app/node_modules ./node_modules
 
 EXPOSE 3001
 CMD ["npm", "start"]

@@ -1,4 +1,3 @@
-node_modules
 .npm
 dist
 .next
@@ -13,5 +12,4 @@ README.md
 LICENSE
 .vscode
 .idea
-node_modules
 npm-debug.log

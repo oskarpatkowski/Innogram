@@ -24,12 +24,10 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nodejs
 USER nodejs
 
-WORKDIR /app/apps/core_microservice
-
-COPY --from=installer --chown=nodejs:nodejs /app/apps/core_microservice/dist ./dist
-COPY --from=installer --chown=nodejs:nodejs /app/apps/core_microservice/package.json ./package.json
 COPY --from=installer --chown=nodejs:nodejs /app/node_modules ./node_modules
-COPY --from=installer --chown=nodejs:nodejs /app/apps/core_microservice/node_modules ./node_modules
+COPY --from=installer --chown=nodejs:nodejs /app/apps/core_microservice ./apps/core_microservice
+
+WORKDIR /app/apps/core_microservice
 
 EXPOSE 3000
 CMD ["node", "dist/src/main.js"]

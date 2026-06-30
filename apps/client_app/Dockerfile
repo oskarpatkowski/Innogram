@@ -24,13 +24,10 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nodejs
 USER nodejs
 
+COPY --from=installer --chown=nodejs:nodejs /app/node_modules ./node_modules
+COPY --from=installer --chown=nodejs:nodejs /app/apps/client_app ./apps/client_app
+
 WORKDIR /app/apps/client_app
 
-COPY --from=installer --chown=nodejs:nodejs /app/apps/client_app/package.json ./package.json
-COPY --from=installer --chown=nodejs:nodejs /app/apps/client_app/.next ./.next
-COPY --from=installer --chown=nodejs:nodejs /app/apps/client_app/public ./public
-COPY --from=installer --chown=nodejs:nodejs /app/node_modules ./node_modules
-COPY --from=installer --chown=nodejs:nodejs /app/apps/client_app/node_modules ./node_modules
-
 EXPOSE 3001
-CMD ["npm", "start"]
+CMD ["npx", "next", "start"]

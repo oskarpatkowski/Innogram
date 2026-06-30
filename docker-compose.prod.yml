@@ -1,12 +1,18 @@
 services:
   core:
+    environment:
+      NODE_ENV: production
     command: node dist/src/main.js
     volumes: []
 
   auth:
+    environment:
+      NODE_ENV: production
     command: node dist/main.js
     volumes: []
 
   client:
+    environment:
+      NODE_ENV: production
     command: npx next start
     volumes: []

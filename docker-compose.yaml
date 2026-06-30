@@ -51,9 +51,6 @@ services:
         condition: service_started
       prisma-seed:
         condition: service_completed_successfully
-    volumes:
-      - .:/app
-      - /app/node_modules
 
   client:
     user: "root"
@@ -71,9 +68,6 @@ services:
       CORE_URL: "http://core:${CORE_PORT}"
       NEXT_PUBLIC_API_URL: "http://localhost:${CORE_PORT}"
     command: npm run dev
-    volumes:
-      - .:/app
-      - /app/node_modules
 
   db:
     env_file: ".env"
@@ -131,9 +125,6 @@ services:
         condition: service_healthy
       prisma-seed:
         condition: service_completed_successfully
-    volumes:
-      - .:/app
-      - /app/node_modules
 
 volumes:
   pgdata:

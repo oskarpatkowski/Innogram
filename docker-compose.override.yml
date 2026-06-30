@@ -1,0 +1,15 @@
+services:
+  core:
+    volumes:
+      - .:/app
+      - /app/node_modules
+
+  client:
+    volumes:
+      - .:/app
+      - /app/node_modules
+
+  auth:
+    volumes:
+      - .:/app
+      - /app/node_modules

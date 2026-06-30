@@ -8,5 +8,5 @@ services:
     volumes: []
 
   client:
-    command: npm start
+    command: npx next start
     volumes: []

@@ -29,7 +29,6 @@ WORKDIR /app/apps/auth_microservice
 COPY --from=installer --chown=nodejs:nodejs /app/apps/auth_microservice/dist ./dist
 COPY --from=installer --chown=nodejs:nodejs /app/apps/auth_microservice/package.json ./package.json
 COPY --from=installer --chown=nodejs:nodejs /app/node_modules ./node_modules
-COPY --from=installer --chown=nodejs:nodejs /app/apps/auth_microservice/node_modules ./node_modules
 
 EXPOSE 3000
 CMD ["node", "dist/main.js"]

@@ -4,7 +4,7 @@ services:
     build:
       context: .
       dockerfile: apps/core_microservice/Dockerfile
-      target: builder
+      target: installer
     working_dir: /app/packages/database
     command: npx prisma db push
     environment:
@@ -18,7 +18,7 @@ services:
     build:
       context: .
       dockerfile: apps/core_microservice/Dockerfile
-      target: builder
+      target: installer
     working_dir: /app/packages/database
     command: npx prisma db seed
     environment:
@@ -28,6 +28,7 @@ services:
         condition: service_completed_successfully
 
   core:
+    user: "root"
     env_file: ".env"
     build:
       context: .
@@ -55,6 +56,7 @@ services:
       - /app/node_modules
 
   client:
+    user: "root"
     env_file: ".env"
     build:
       context: .

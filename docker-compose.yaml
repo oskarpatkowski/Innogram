@@ -51,6 +51,7 @@ services:
     volumes:
       - .:/app
       - /app/node_modules
+      - /app/apps/core_microservice/node_modules
 
   client:
     env_file: ".env"
@@ -130,6 +131,7 @@ services:
     volumes:
       - .:/app
       - /app/node_modules
+      - /app/apps/auth_microservice/node_modules
 
 volumes:
   pgdata:

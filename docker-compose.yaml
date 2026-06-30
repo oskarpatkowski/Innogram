@@ -51,7 +51,6 @@ services:
     volumes:
       - .:/app
       - /app/node_modules
-      - /app/apps/core_microservice/node_modules
 
   client:
     env_file: ".env"
@@ -119,7 +118,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       npm_config_cache: /tmp/.npm
-    working_dir: /app/apps/auth_microservice
+    working_dir: /app/apps/_microservice
     command: npx --yes tsx watch src/main.ts
     depends_on:
       db:
@@ -131,7 +130,6 @@ services:
     volumes:
       - .:/app
       - /app/node_modules
-      - /app/apps/auth_microservice/node_modules
 
 volumes:
   pgdata:

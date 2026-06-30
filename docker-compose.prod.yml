@@ -1,50 +1,24 @@
 services:
   prisma-setup:
-    build:
-      context: .
-      dockerfile: apps/core_microservice/Dockerfile
-      target: builder
     command: npx prisma db push
 
   prisma-seed:
-    build:
-      context: .
-      dockerfile: apps/core_microservice/Dockerfile
-      target: builder
     command: /bin/sh -c "npm run build --workspace=@innogram/database && npx prisma db seed"
 
   core:
-    build:
-      context: .
-      dockerfile: apps/core_microservice/Dockerfile
-      target: runner
     command: node dist/src/main.js
     volumes: []
     environment:
       NODE_ENV: production
-      FRONTEND_URL: "http://0.0.0.0"
-      AUTH_SERVICE_URL: "http://auth:${AUTH_PORT}"
 
   client:
-    build:
-      context: .
-      dockerfile: apps/client_app/Dockerfile
-      target: runner
     command: npm start
     volumes: []
     environment:
       NODE_ENV: production
-      CORE_URL: "http://core:${CORE_PORT}"
-      NEXT_PUBLIC_API_URL: "http://0.0.0.0"
-      NEXT_PUBLIC_AUTH_URL: "http://0.0.0.0"
 
   auth:
-    build:
-      context: .
-      dockerfile: apps/auth_microservice/Dockerfile
-      target: runner
     command: node dist/main.js
     volumes: []
     environment:
       NODE_ENV: production
-      ALLOWED_ORIGIN: "http://0.0.0.0"

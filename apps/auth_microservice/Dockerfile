@@ -24,10 +24,13 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nodejs
 USER nodejs
 
-COPY --from=installer --chown=nodejs:nodejs /app/apps/auth_microservice/package.json .
-COPY --from=installer --chown=nodejs:nodejs /app/apps/auth_microservice/dist ./dist
+# Copy dependencies and compiled code
+COPY --from=installer --chown=nodejs:nodejs /app/apps/auth_microservice/package.json ./apps/auth_microservice/package.json
+COPY --from=installer --chown=nodejs:nodejs /app/apps/auth_microservice/dist ./apps/auth_microservice/dist
 COPY --from=installer --chown=nodejs:nodejs /app/node_modules ./node_modules
 COPY --from=installer --chown=nodejs:nodejs /app/packages ./packages
+
+WORKDIR /app/apps/auth_microservice
 
 EXPOSE 3000
 

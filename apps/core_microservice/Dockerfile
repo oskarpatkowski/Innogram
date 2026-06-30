@@ -23,16 +23,18 @@ WORKDIR /app
 
 RUN apt-get update -y && apt-get install -y openssl
 
+# Copy dependencies
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/apps/core_microservice/node_modules ./apps/core_microservice/node_modules
 COPY --from=builder /app/packages ./packages
 
+# Copy compiled code
 COPY --from=builder /app/apps/core_microservice/dist ./apps/core_microservice/dist
-COPY --from=builder /app/apps/core_microservice/package.json ./apps/core_microservice/
+COPY --from=builder /app/apps/core_microservice/package.json ./apps/core_microservice/package.json
 COPY --from=builder /app/packages/database/dist ./packages/database/dist
 
 WORKDIR /app/apps/core_microservice
 
 EXPOSE 3000
 
-CMD ["node", "dist/src/main.js"]
+CMD ["node", "dist/main.js"]

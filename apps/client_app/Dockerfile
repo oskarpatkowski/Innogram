@@ -23,11 +23,12 @@ RUN npx turbo build --filter=innogram-next...
 FROM base AS runner
 WORKDIR /app
 
+# Copy dependencies
 COPY package.json package-lock.json* ./
 COPY apps/client_app/package.json ./apps/client_app/
 RUN npm ci --cache ./.npm-cache
 
-
+# Copy compiled code
 COPY --from=builder /app/apps/client_app/.next ./apps/client_app/.next
 COPY --from=builder /app/apps/client_app/public ./apps/client_app/public
 

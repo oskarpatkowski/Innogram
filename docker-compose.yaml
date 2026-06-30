@@ -4,6 +4,7 @@ services:
     build:
       context: .
       dockerfile: apps/core_microservice/Dockerfile
+      target: builder
     working_dir: /app/packages/database
     command: npx prisma db push
     environment:
@@ -17,6 +18,7 @@ services:
     build:
       context: .
       dockerfile: apps/core_microservice/Dockerfile
+      target: builder
     working_dir: /app/packages/database
     command: npx prisma db seed
     environment:
@@ -118,7 +120,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       npm_config_cache: /tmp/.npm
-    working_dir: /app/apps/_microservice
+    working_dir: /app/apps/auth_microservice
     command: npx --yes tsx watch src/main.ts
     depends_on:
       db:

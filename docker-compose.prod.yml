@@ -3,22 +3,13 @@ services:
     command: npx prisma db push
 
   prisma-seed:
-    command: /bin/sh -c "npm run build --workspace=@innogram/database && npx prisma db seed"
+    command: npx prisma db seed
 
   core:
     command: node dist/src/main.js
-    volumes: []
-    environment:
-      NODE_ENV: production
 
   client:
     command: npm start
-    volumes: []
-    environment:
-      NODE_ENV: production
 
   auth:
     command: node dist/main.js
-    volumes: []
-    environment:
-      NODE_ENV: production

@@ -1,8 +1,5 @@
 FROM node:22-slim AS builder
-
 WORKDIR /app
-
-RUN apt-get update -y && apt-get install -y openssl
 
 COPY package.json package-lock.json ./
 COPY apps/core_microservice/package.json ./apps/core_microservice/
@@ -15,26 +12,16 @@ RUN npm ci --cache ./.npm-cache
 COPY . .
 
 RUN npx turbo build --filter=innogram-nest...
-RUN npx turbo build --filter=@innogram/database
+RUN npx turbo build --filter=@innogram/database...
 
 FROM node:22-slim AS runner
-
-WORKDIR /app
-
-RUN apt-get update -y && apt-get install -y openssl
-
-# Copy dependencies
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/apps/core_microservice/node_modules ./apps/core_microservice/node_modules
-COPY --from=builder /app/packages ./packages
-
-# Copy compiled code
-COPY --from=builder /app/apps/core_microservice/dist ./apps/core_microservice/dist
-COPY --from=builder /app/apps/core_microservice/package.json ./apps/core_microservice/package.json
-COPY --from=builder /app/packages/database/dist ./packages/database/dist
-
 WORKDIR /app/apps/core_microservice
 
-EXPOSE 3000
+COPY --from=builder /app/apps/core_microservice/package.json ./package.json
+COPY --from=builder /app/apps/core_microservice/dist ./dist
 
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/apps/core_microservice/node_modules ./node_modules
+
+EXPOSE 3000
 CMD ["node", "dist/main.js"]

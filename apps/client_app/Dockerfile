@@ -1,39 +1,25 @@
-FROM node:22-slim AS base
+FROM node:22-slim AS builder
 WORKDIR /app
 
 COPY package.json package-lock.json* ./
 COPY apps/client_app/package.json ./apps/client_app/
+
+RUN npm ci --cache ./.npm-cache
 
 COPY . .
 
-RUN npm ci --cache ./.npm-cache
-
-FROM base AS builder
-
-WORKDIR /app
-
-ARG NEXT_PUBLIC_API_URL
-ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
-
-ARG NEXT_PUBLIC_AUTH_URL
-ENV NEXT_PUBLIC_AUTH_URL=$NEXT_PUBLIC_AUTH_URL
-
 RUN npx turbo build --filter=innogram-next...
 
-FROM base AS runner
-WORKDIR /app
-
-# Copy dependencies
-COPY package.json package-lock.json* ./
-COPY apps/client_app/package.json ./apps/client_app/
-RUN npm ci --cache ./.npm-cache
-
-# Copy compiled code
-COPY --from=builder /app/apps/client_app/.next ./apps/client_app/.next
-COPY --from=builder /app/apps/client_app/public ./apps/client_app/public
-
+FROM node:22-slim AS runner
 WORKDIR /app/apps/client_app
 
-EXPOSE 3001
+COPY --from=builder /app/package-lock.json ./package-lock.json
+COPY --from=builder /app/apps/client_app/package.json ./package.json
+COPY --from=builder /app/apps/client_app/.next ./.next
+COPY --from=builder /app/apps/client_app/public ./public
 
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/apps/client_app/node_modules ./node_modules
+
+EXPOSE 3001
 CMD ["npm", "start"]

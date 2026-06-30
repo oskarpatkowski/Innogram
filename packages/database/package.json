@@ -1,6 +1,6 @@
 {
   "name": "@innogram/database",
-  "version": "1.0.0",
+  "version": "1.pnpm.0",
   "main": "index.ts",
   "scripts": {
     "generate": "prisma generate",
@@ -9,14 +9,12 @@
     "push": "prisma db push",
     "seed": "prisma db seed",
     "studio": "prisma studio",
-    "build": "tsc prisma/seed.ts --outDir dist"
-  },
-  "prisma": {
-    "seed": "node dist/prisma/seed.js"
+    "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
     "@prisma/client": "^7.7.0",
-    "bcrypt": "^6.0.0"
+    "bcrypt": "^6.0.0",
+    "effect": "^3.5.4"
   },
   "devDependencies": {
     "@prisma/config": "^7.7.0",

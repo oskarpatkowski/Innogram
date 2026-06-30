@@ -51,7 +51,7 @@ async function main() {
   for (const delegate of modelDelegates) {
     try {
       await (delegate as any).deleteMany();
-    } catch (e) {
+    } catch (e: unknown) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2021') {
         // This is okay, table doesn't exist.
       } else {

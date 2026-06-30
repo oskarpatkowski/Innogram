@@ -6,7 +6,7 @@ COPY apps/client_app/package.json ./apps/client_app/
 
 COPY . .
 
-RUN npm ci
+RUN npm ci --cache ./.npm-cache
 
 FROM base AS builder
 
@@ -25,7 +25,7 @@ WORKDIR /app
 
 COPY package.json package-lock.json* ./
 COPY apps/client_app/package.json ./apps/client_app/
-RUN npm ci
+RUN npm ci --cache ./.npm-cache
 
 
 COPY --from=builder /app/apps/client_app/.next ./apps/client_app/.next

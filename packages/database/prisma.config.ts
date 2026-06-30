@@ -15,10 +15,10 @@ const databaseUrl =
   `postgresql://${dbUser}:${dbPass}@${dbHost}:${dbPort}/${dbUser}`;
 
 export default defineConfig({
-  schema: "schema.prisma",
+  schema: "prisma/schema.prisma",
   migrations: {
     path: "migrations",
-    seed: "node dist/seed.js"
+    seed: "node dist/prisma/seed.js"
   },
   datasource: {
     url: databaseUrl,

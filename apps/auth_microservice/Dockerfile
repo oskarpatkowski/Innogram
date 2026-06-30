@@ -9,12 +9,10 @@ WORKDIR /app
 
 COPY --from=builder /app/out/json/ .
 COPY --from=builder /app/out/package-lock.json ./package-lock.json
-
 RUN npm ci
 
 COPY --from=builder /app/out/full/ .
 COPY turbo.json turbo.json
-
 RUN npx turbo build --filter=auth_microservice...
 
 FROM node:22-slim AS runner
@@ -28,6 +26,8 @@ COPY --from=installer --chown=nodejs:nodejs /app/node_modules ./node_modules
 COPY --from=installer --chown=nodejs:nodejs /app/apps/auth_microservice ./apps/auth_microservice
 
 WORKDIR /app/apps/auth_microservice
+COPY --from=installer --chown=nodejs:nodejs /app/apps/auth_microservice/dist ./dist
 
 EXPOSE 3000
+
 CMD ["node", "dist/main.js"]

@@ -23,6 +23,7 @@ RUN adduser --system --uid 1001 nodejs
 USER nodejs
 
 COPY --from=installer --chown=nodejs:nodejs /app/node_modules ./node_modules
+COPY --from=installer --chown=nodejs:nodejs /app/packages ./packages
 COPY --from=installer --chown=nodejs:nodejs /app/apps/auth_microservice ./apps/auth_microservice
 
 WORKDIR /app/apps/auth_microservice

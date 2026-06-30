@@ -20,11 +20,11 @@ RUN npx turbo build --filter=innogram-nest...
 FROM node:22-slim AS runner
 WORKDIR /app
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nodejs
+RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nodejs
 USER nodejs
 
 COPY --from=installer --chown=nodejs:nodejs /app/node_modules ./node_modules
+COPY --from=installer --chown=nodejs:nodejs /app/packages ./packages
 COPY --from=installer --chown=nodejs:nodejs /app/apps/core_microservice ./apps/core_microservice
 
 WORKDIR /app/apps/core_microservice

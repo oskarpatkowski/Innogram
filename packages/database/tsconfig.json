@@ -9,7 +9,9 @@
     "forceConsistentCasingInFileNames": true,
     "declaration": true,
     "declarationMap": true,
-    "types": ["node"]
+    "types": ["node"],
+    "outDir": "dist"
   },
-  "include": [".", "prisma.config.ts"]
+  "include": [".", "prisma.config.ts"],
+  "exclude": ["dist"]
 }

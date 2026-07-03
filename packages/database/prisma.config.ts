@@ -17,8 +17,8 @@ const databaseUrl =
 export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
-    path: "prisma/migrations",
-    seed: "tsx prisma/seed.ts"
+    path: "migrations",
+    seed: "node dist/prisma/seed.js"
   },
   datasource: {
     url: databaseUrl,

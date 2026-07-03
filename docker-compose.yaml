@@ -4,6 +4,7 @@ services:
     build:
       context: .
       dockerfile: apps/core_microservice/Dockerfile
+      target: installer
     working_dir: /app/packages/database
     command: npx prisma db push
     environment:
@@ -17,6 +18,7 @@ services:
     build:
       context: .
       dockerfile: apps/core_microservice/Dockerfile
+      target: installer
     working_dir: /app/packages/database
     command: npx prisma db seed
     environment:
@@ -26,6 +28,7 @@ services:
         condition: service_completed_successfully
 
   core:
+    user: "root"
     env_file: ".env"
     build:
       context: .
@@ -48,11 +51,9 @@ services:
         condition: service_started
       prisma-seed:
         condition: service_completed_successfully
-    volumes:
-      - .:/app
-      - /app/node_modules
 
   client:
+    user: "root"
     env_file: ".env"
     build:
       context: .
@@ -65,11 +66,8 @@ services:
       CHOKIDAR_USEPOLLING: true
       PORT: ${CLIENT_PORT}
       CORE_URL: "http://core:${CORE_PORT}"
-      NEXT_PUBLIC_API_URL: "http://localhost:${CORE_PORT}"
+      NEXT_PUBLIC_API_URL: "/api"
     command: npm run dev
-    volumes:
-      - .:/app
-      - /app/node_modules
 
   db:
     env_file: ".env"
@@ -127,9 +125,6 @@ services:
         condition: service_healthy
       prisma-seed:
         condition: service_completed_successfully
-    volumes:
-      - .:/app
-      - /app/node_modules
 
 volumes:
   pgdata:

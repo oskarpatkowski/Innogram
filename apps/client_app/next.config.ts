@@ -2,6 +2,9 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
+  turbopack: {
+    root: '../../',
+  },
   images: {
     remotePatterns: [
       {
@@ -47,6 +50,10 @@ const nextConfig: NextConfig = {
   },
   async rewrites() {
     return [
+      {
+        source: '/api/:path*',
+        destination: `${process.env.CORE_URL || 'http://core:3000'}/:path*`,
+      },
       {
         source: '/uploads/:path*',
         destination: `${process.env.CORE_URL || 'http://core:3000'}/uploads/:path*`,

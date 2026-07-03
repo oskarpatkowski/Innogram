@@ -1,32 +1,33 @@
-FROM node:22-slim AS base
+FROM node:22-slim AS builder
+RUN npm install -g turbo
+WORKDIR /app
+COPY . .
+RUN turbo prune innogram-next --docker
+
+FROM node:22-slim AS installer
 WORKDIR /app
 
-COPY package.json package-lock.json* ./
-COPY apps/client_app/package.json ./apps/client_app/
-
-COPY . .
+COPY --from=builder /app/out/json/ .
+COPY --from=builder /app/out/package-lock.json ./package-lock.json
 
 RUN npm ci
 
-FROM base AS builder
-
-WORKDIR /app
+COPY --from=builder /app/out/full/ .
+COPY turbo.json turbo.json
 
 RUN npx turbo build --filter=innogram-next...
 
-FROM base AS runner
+FROM node:22-slim AS runner
 WORKDIR /app
 
-COPY package.json package-lock.json* ./
-COPY apps/client_app/package.json ./apps/client_app/
-RUN npm ci
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nodejs
+USER nodejs
 
-
-COPY --from=builder /app/apps/client_app/.next ./apps/client_app/.next
-COPY --from=builder /app/apps/client_app/public ./apps/client_app/public
+COPY --from=installer --chown=nodejs:nodejs /app/node_modules ./node_modules
+COPY --from=installer --chown=nodejs:nodejs /app/apps/client_app ./apps/client_app
 
 WORKDIR /app/apps/client_app
 
 EXPOSE 3001
-
-CMD ["npm", "start"]
+CMD ["npx", "next", "start"]
